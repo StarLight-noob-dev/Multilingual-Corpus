@@ -1,0 +1,6 @@
+pytest
+python-dotenv
+psycopg2
+asyncpg
+sqlalchemy
+python-dateutil
