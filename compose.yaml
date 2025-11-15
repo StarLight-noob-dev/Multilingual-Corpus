@@ -1,0 +1,19 @@
+services:
+    db:
+      image: postgres:18.0-alpine
+      container_name: postgres_db
+      restart: always
+      environment:
+          POSTGRES_USER: ${DB_USER:-user}
+          POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+          POSTGRES_DB: ${DB_NAME:-mydatabase}
+      ports:
+        - 5432:5432
+      volumes:
+          - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
+
+# docker exec -it postgres_db sh
+# psql -h localhost -U thesis_user -d thesis_db
