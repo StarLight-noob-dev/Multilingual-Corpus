@@ -7,3 +7,4 @@ __pycache__/
 .vscode/
 diary
 *.log
+data/samples/huge_editions_test.txt
