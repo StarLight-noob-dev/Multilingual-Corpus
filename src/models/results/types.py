@@ -1,0 +1,37 @@
+"""
+A simple Result type for handling success and error cases.
+Based on https://github.com/rustedpy/result
+"""
+from typing import TypeAlias, TypeVar, Generic
+
+TOK = TypeVar("TOK")
+TERR = TypeVar("TERR")
+
+
+class Ok(Generic[TOK]):
+    _value: TOK
+
+    def __init__(self, value: TOK):
+        self._value = value
+
+    def is_ok(self) -> bool:
+        return True
+
+    def ok_value(self) -> TOK:
+        return self._value
+
+
+class Err(Generic[TERR]):
+    _err: TERR
+
+    def __init__(self, err: TERR):
+        self._err = err
+
+    def is_ok(self) -> bool:
+        return False
+
+    def err_value(self) -> TERR:
+        return self._err
+
+
+SimpleResult: TypeAlias = Ok[TOK] | Err[TERR]
