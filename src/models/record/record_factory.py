@@ -96,13 +96,11 @@ def _process_author_record(t_record: TransportRecord) -> AuthorRecord:
 
     ol_id = t_record.id.split('/')[-1]
     name = _get_str(data, "name")
-    birth_date, _ = _parse_year(_get_str(data, "birth_date"))
     death_date, exact = _parse_year(_get_str(data, "death_date"))
 
     return AuthorRecord(
         ol_id,
         name,
-        birth_date,
         death_date,
         exact
     )
