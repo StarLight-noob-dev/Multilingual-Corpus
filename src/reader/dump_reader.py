@@ -14,6 +14,9 @@ class DumpReader:
     _EDITION_DUMP_NAME = "data\\raw\\ol_dump_editions_latest.txt"
     _WORK_DUMP_NAME = "data\\raw\\ol_dump_works_latest.txt"
     _AUTHOR_DUMP_NAME = "data\\raw\\ol_dump_authors_latest.txt"
+    _EDITION_BIG = "data\\samples\\big_editions.txt"
+    _EDITION_MEDIUM = "data\\samples\\medium_editions.txt"
+    _EDITION_SMALL = "data\\samples\\small_editions.txt"
 
     @staticmethod
     def _ensure_exists(file_name: str) -> None:
@@ -157,8 +160,8 @@ class DumpReader:
     def process_file(file_name: str, batch_size: int = None) -> (Iterable[list[TransportRecord]]
                                                                  | Iterable[TransportRecord]):
         """
-        Process the entire file and return either an iterator over TransportRecord or
-        an iterator over batches depending on `batch_size`.
+        Process the entire file and return either an iterator of TransportRecord or
+        batches of TransportRecords depending on `batch_size`.
 
         Args:
             file_name (str): Path to the file to be processed.
@@ -180,3 +183,11 @@ class DumpReader:
 
     def get_work_generator(self, batch_size: int = None) -> Iterable[Any]:
         return DumpReader.process_file(os.path.join(self._CURRENT_DIR, self._WORK_DUMP_NAME), batch_size)
+
+    def get_edition_sample_generator(self, size: str = "small", batch_size: int = None) -> Iterable[Any]:
+        sample_file = {
+            "small": self._EDITION_SMALL,
+            "medium": self._EDITION_MEDIUM,
+            "big": self._EDITION_BIG
+        }.get(size.lower(), self._EDITION_SMALL)
+        return DumpReader.process_file(os.path.join(self._CURRENT_DIR, sample_file), batch_size)
