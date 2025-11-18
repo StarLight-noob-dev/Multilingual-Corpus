@@ -4,6 +4,7 @@ import multiprocessing as mp
 from pathlib import Path
 from typing import List, Tuple, Any, Iterable
 
+from src.models.file_chunk import Chunk
 from src.models.record.transport_record import TransportRecord
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class DumpReader:
             logger.error(f"File {file_name} does not exist")
 
     @staticmethod
-    def get_file_chunks(file_name: str, max_cpu: int = 16) -> Tuple[int, int, List[Tuple[str, int, int]]]:
+    def get_file_chunks(file_name: str, max_cpu: int = 16) -> Tuple[int, int, List[Chunk]]:
         """
         Splits a file into chunks for parallel processing.
 
@@ -34,9 +35,8 @@ class DumpReader:
             minimum between this value and the available CPU cores.
 
         Returns:
-            Tuple[int, int, List[Tuple[str, int, int]]]: A tuple (int, int, [(str, int, int)])
-            containing the number of CPU core used, the number of chunks and a list of
-            (file_name, start, end) tuples for each chunk.
+            Tuple[int, int, List[Chunk]]: A tuple (int, int, [Chunk]) containing the number of CPU core
+            used, the amount of chunks created, and a list of Chunk objects representing the file chunks.
         """
         logger.debug(f"Accessing {os.path.abspath(file_name)}")
         DumpReader._ensure_exists(file_name)
@@ -47,7 +47,7 @@ class DumpReader:
 
         file_size = os.path.getsize(file_name)
         chunk_size = file_size // cpu_count
-        chunks: List[Tuple[str, int, int]] = []
+        chunks: List[Chunk] = []
 
         logger.debug(f"File size: {file_size} bytes. Using {cpu_count} CPU cores with chunk size {chunk_size} bytes.")
         logger.info(f"Splitting file {file_name} into chunks...")
@@ -79,9 +79,11 @@ class DumpReader:
 
                     chunks.append(
                         (
-                            file_name,
-                            chunk_start,
-                            chunk_end
+                            Chunk(
+                                file_name,
+                                chunk_start,
+                                chunk_end
+                            )
                         )
                     )
                     chunk_start = chunk_end
