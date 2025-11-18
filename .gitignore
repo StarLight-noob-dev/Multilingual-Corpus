@@ -8,3 +8,4 @@ __pycache__/
 diary
 *.log
 data/samples/huge_editions_test.txt
+data/raw
