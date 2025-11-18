@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Set, override
 
 from src.models.record.edition_record import EditionRecord
 from src.models.results.stage_result import StageResult
-from src.models.results.types import Err, Ok
 from src.pipeline.stage.context import LanguageContext
 from src.pipeline.stage.interface import StageInterface
 
@@ -30,9 +29,9 @@ class EditionLanguageValidationStage(StageInterface):
         for record in stage_data.success_values():
             record_languages = getattr(record, 'languages', [])
             if self._is_valid_language(set(record_languages), any_language):
-                results.add_ok(Ok(record))
+                results.add_ok(record)
             else:
-                results.add_err(Err(f"Invalid record: unsupported language codes: {record_languages}"))
+                results.add_err(f"Invalid record: unsupported language codes: {record_languages}")
 
         return results
 

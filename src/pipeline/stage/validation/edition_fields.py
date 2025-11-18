@@ -45,9 +45,9 @@ class EditionFieldValidation(StageInterface):
 
         for record in stage_data.success_values():
             if self._has_necessary_attributes(record):
-                results.add_ok(Ok(record))
+                results.add_ok(record)
             else:
-                results.add_err(Err(f"Invalid record: missing necessary attributes: {record}"))
+                results.add_err(f"Invalid record: missing necessary attributes: {record}")
         logger.debug(f"{results.summary()}")
         return results
 

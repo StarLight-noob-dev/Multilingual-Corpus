@@ -25,13 +25,13 @@ class StageResult(Generic[T, E]):
         self.success: List[Ok[T]] = []
         self.failed: List[Err[E]] = []
 
-    def add_ok(self, record: Ok[T]) -> None:
+    def add_ok(self, record: Any[T]) -> None:
         """Add a successful Ok[T] result."""
-        self.success.append(record)
+        self.success.append(Ok(record))
 
-    def add_err(self, error: Err[E]) -> None:
+    def add_err(self, error: Any[E]) -> None:
         """Add an Err[E] failure result."""
-        self.failed.append(error)
+        self.failed.append(Err(error))
 
     def success_values(self) -> List[T]:
         """Returns the unwrapped values from Ok[T] records."""
