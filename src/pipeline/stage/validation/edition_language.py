@@ -3,11 +3,11 @@ from typing import Any, Dict, List, Set, override
 from src.models.record.edition_record import EditionRecord
 from src.models.results.stage_result import StageResult
 from src.models.results.types import Err, Ok
-from src.stage.context import LanguageContext
-from src.stage.interface import StageInterface
+from src.pipeline.stage.context import LanguageContext
+from src.pipeline.stage.interface import StageInterface
 
 
-class EditionLanguageValidator(StageInterface):
+class EditionLanguageValidationStage(StageInterface):
     @override
     def initialize(self, stage_id: str, ctx: LanguageContext, **kwargs) -> Dict[str, Any]:
         self.stage_id = stage_id

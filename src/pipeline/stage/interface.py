@@ -6,7 +6,7 @@ from src.models.results.stage_result import StageResult
 import threading
 from pathlib import Path
 
-from src.stage.context import PipelineContext
+from src.pipeline.stage.context import PipelineContext
 
 # Map output path -> threading.Lock to coordinate writes from multiple threads.
 _file_locks: Dict[str, threading.Lock] = {}
@@ -47,7 +47,7 @@ class StageInterface(ABC):
         raise NotImplementedError("This method should be overridden by subclasses.")
 
     @abstractmethod
-    def process_batch(self, stage_data: StageResult, ctx: PipelineContext,**kwargs) -> StageResult | Any | None: #TODO type stage result
+    def process_batch(self, stage_data: StageResult[Any, Any], ctx: PipelineContext,**kwargs) -> StageResult | Any | None: #TODO type stage result
         """
         This method defines how the stage processes a batch of data.
 
