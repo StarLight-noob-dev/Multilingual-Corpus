@@ -28,8 +28,7 @@ class BaseRepository(Generic[T, ID], IRepository[T, ID]):
     def create_many(self, values: Iterable[Dict], conflict_index: Optional[List[str]] = None) -> None:
         """
         Batch insert multiple entities efficiently using PostgreSQL's ON CONFLICT.
-        - `values`: Iterable of dicts with column names as keys
-        - `conflict_index`: Optional list of column names for ON CONFLICT DO NOTHING
+        # TODO cahnge value type to Iterable[T] and see how to insert that way, also see if it should return the inserted entities
         """
         stmt = pg_insert(self.model).values(list(values))
         if conflict_index:
