@@ -1,10 +1,4 @@
-import tempfile
 from pathlib import Path
-import os
-import io
-import sys
-
-import pytest
 
 from utility.copy_lines import copy_lines
 
