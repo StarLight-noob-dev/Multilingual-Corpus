@@ -1,15 +1,24 @@
 import logging
-from src.database.database import engine
-# Importing all the models from Declarative Base
-from src.database.orm_mapper import Base
+from sqlalchemy.exc import OperationalError
 
-logger = logging.getLogger(__name__)
+from src.database.database import init_db, SessionLocal
 
 
-def init_db():
-    # Create tables
-    Base.metadata.create_all(engine)
-    logger.info("All tables checked/created successfully!")
+def check_db_connection():
+    """Checks if the database connection can be established."""
+    try:
+        session = SessionLocal()
+        session.execute("SELECT 1")
+        session.close()
+        logging.info("Main Database connection successful.")
+        return True
+    except OperationalError as e:
+        print("Main Database connection failed:", e)
+        return False
 
 if __name__ == "__main__":
-    init_db()
+    if check_db_connection():
+        print("Creating database tables...")
+        init_db()
+        print("Database tables created successfully.")
+
