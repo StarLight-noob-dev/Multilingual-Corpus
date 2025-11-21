@@ -17,7 +17,8 @@ FULL_FORMATTER = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s]: %(
 def root_logger(log_dir: Union[str, Path] = None,
                 log_name: str = "pipeline.log",
                 console_level: int = logging.DEBUG,
-                erase_old_logs: bool = False) -> logging.Logger:
+                erase_old_logs: bool = False,
+                log_level: int = logging.NOTSET) -> logging.Logger:
     """
     Configure the root logger:
 
@@ -28,6 +29,13 @@ def root_logger(log_dir: Union[str, Path] = None,
     Default behaviour: if log_dir is None or a relative path is provided, the directory
     is resolved relative to the repository root (two parents up from this file), so
     the default becomes <project_root>/logs instead of src/logs.
+
+    Args:
+        log_dir (Union[str, Path], optional): Directory to store log files. Defaults to None.
+        log_name (str, optional): Name of the root log file. Defaults to "pipeline.log".
+        console_level (int, optional): Logging level for console output. Defaults to logging.DEBUG.
+        erase_old_logs (bool, optional): If True, delete existing .log files in log_dir. Defaults to False.
+        log_level (int, optional): Logging level for the root file handler. Defaults to logging.NOTSET.
 
     Returns the root logger.
     """
@@ -47,7 +55,7 @@ def root_logger(log_dir: Union[str, Path] = None,
     file_path_str = str(log_file.resolve())
 
     root = logging.getLogger()
-    root.setLevel(logging.NOTSET)  # allow all messages to reach handlers
+    root.setLevel(log_level)
 
     # If requested, erase existing .log files in the resolved log_dir.
     if erase_old_logs:
@@ -72,7 +80,7 @@ def root_logger(log_dir: Union[str, Path] = None,
                         # ignore problems determining base filename
                         pass
 
-            # Now delete all .log files in the directory (non-recursive)
+            # Delete .log files
             for p in log_dir.glob("*.log"):
                 try:
                     p.unlink()
@@ -96,7 +104,7 @@ def root_logger(log_dir: Union[str, Path] = None,
                 h.setLevel(console_level)
                 h.setFormatter(FULL_FORMATTER)
 
-        # Root file handler: buffered, writes everything (NOTSET)
+        # Root file handler: buffered
         existing_root_file = any(
             isinstance(h, (logging.FileHandler, BufferedFileHandler)) and getattr(h, "baseFilename", "") == file_path_str
             for h in root.handlers
@@ -104,7 +112,7 @@ def root_logger(log_dir: Union[str, Path] = None,
         if not existing_root_file:
             # Use BufferedFileHandler for root file
             root_file_handler = BufferedFileHandler(file_path_str, capacity=100, encoding="utf-8")
-            root_file_handler.setLevel(logging.NOTSET)  # accept all records
+            root_file_handler.setLevel(log_level)
             root_file_handler.setFormatter(FULL_FORMATTER)
             root.addHandler(root_file_handler)
 
