@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from utility.copy_lines import copy_lines
+from utilities.copy_lines import copy_lines
 
 
 def write_file(path: Path, content: str):
