@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
-from src.database.orm_mapper import AuthorORM
+from src.models.orm.author_orm import AuthorORM
 from src.database.repositories.base_repository import BaseRepository
 
 
