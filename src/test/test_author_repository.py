@@ -1,20 +1,18 @@
-
-from src.database.database import get_test_engine
 import pytest
 
 from sqlalchemy.orm import sessionmaker
 
 from src.database.base import Base
+from src.database.database import get_test_engine
 from src.database.repositories.author_repository import AuthorRepository
-from src.models.record.author_record import AuthorRecord
+from src.models.orm.author_orm import AuthorORM
 
 
 @pytest.fixture
 def session():
     # In-memory SQLite for fast, isolated tests
     engine = get_test_engine()
-    # Only create the authors table to avoid PostgreSQL-specific ARRAY columns on EditionORM
-    Base.metadata.create_all(bind=engine, tables=[AuthorRecord.__table__])
+    Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
     sess = SessionLocal()
     try:
@@ -24,7 +22,7 @@ def session():
 
 
 def _insert_author(session, ol_id: str, name: str = "Name", death_date: int = 2000, is_exact: bool = False, work_count: int = 0):
-    a = AuthorRecord(_ol_id=ol_id, name=name, death_date=death_date, is_death_date_exact=is_exact, _work_count=work_count)
+    a = AuthorORM(_ol_id=ol_id, name=name, death_date=death_date, is_death_date_exact=is_exact, _work_count=work_count)
     session.add(a)
     session.commit()
     session.refresh(a)
@@ -38,11 +36,11 @@ class TestAuthorRepository:
         self.session = session
         self.repo = AuthorRepository(session=self.session)
         # Ensure clean slate
-        self.session.query(AuthorRecord).delete()
+        self.session.query(AuthorORM).delete()
         self.session.commit()
         yield
         # Teardown: remove any authors created by the test so following tests start clean
-        self.session.query(AuthorRecord).delete()
+        self.session.query(AuthorORM).delete()
         self.session.commit()
 
     def test_get_many_by_ids_returns_entities(self):
@@ -73,4 +71,4 @@ class TestAuthorRepository:
         res = self.repo.get_many_by_ids(["A1", "MISSING"])
         assert isinstance(res, list)
         assert len(res) == 1
-        assert res[0].ol_id == "A1"
+        assert res[0]._ol_id == "A1"

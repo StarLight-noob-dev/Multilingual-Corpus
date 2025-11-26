@@ -3,4 +3,5 @@ python-dotenv
 psycopg2
 asyncpg
 sqlalchemy
+sqlalchemy-utils
 python-dateutil
