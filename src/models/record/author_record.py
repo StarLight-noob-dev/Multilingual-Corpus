@@ -4,7 +4,7 @@ from typing import Dict, Any, override, Tuple
 from sqlalchemy import String, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.database.orm_mapper import Base
+from src.database.base import Base
 from src.models.record.interface import IRecord
 
 
