@@ -17,7 +17,6 @@ class BaseRepository(Generic[T, ID], IRepository[T, ID]):
         self.model = model
         self.pk = model.__mapper__.primary_key[0]
 
-    # ---------------------- CREATE ----------------------
     def create(self, **fields) -> T:
         entity = self.model(**fields)
         self.session.add(entity)
@@ -36,7 +35,6 @@ class BaseRepository(Generic[T, ID], IRepository[T, ID]):
         self.session.execute(stmt)
         self.session.commit()
 
-    # ---------------------- READ ------------------------
     def get_by_id(self, entity_id: ID) -> Optional[T]:
         stmt = select(self.model).where(self.pk == entity_id) #TODO might need to be .equals()? do a test
         result = self.session.execute(stmt)
@@ -47,7 +45,6 @@ class BaseRepository(Generic[T, ID], IRepository[T, ID]):
         result = self.session.execute(stmt)
         return list(result.scalars().all())
 
-    # ---------------------- UPDATE ----------------------
     def update(self, entity_id: ID, **fields) -> Optional[T]:
         entity = self.get_by_id(entity_id)
         if not entity:
@@ -58,7 +55,6 @@ class BaseRepository(Generic[T, ID], IRepository[T, ID]):
         self.session.refresh(entity)
         return entity
 
-    # ---------------------- DELETE ----------------------
     def delete(self, entity_id: ID) -> bool:
         entity = self.get_by_id(entity_id)
         if not entity:
