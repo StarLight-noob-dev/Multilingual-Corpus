@@ -9,6 +9,8 @@ ID = TypeVar("ID")  # Primary key type
 @dataclass
 class IRepository(Generic[T, ID]):
     """Minimal ORM-only CRUD interface for repositories."""
+
+    # ---------------------- CREATE ----------------------
     @abstractmethod
     def create(self, **fields) -> T:
         """Create a new ORM entity."""
@@ -19,6 +21,7 @@ class IRepository(Generic[T, ID]):
         """Create multiple ORM entities."""
         ...
 
+    # ---------------------- READ ------------------------
     @abstractmethod
     def get_by_id(self, entity_id: ID) -> Optional[T]:
         """Return one ORM entity or None."""
@@ -29,11 +32,13 @@ class IRepository(Generic[T, ID]):
         """Return all ORM entities."""
         ...
 
+    # ---------------------- UPDATE ----------------------
     @abstractmethod
     def update(self, entity_id: ID, **fields) -> Optional[T]:
         """Update an ORM entity and return the updated instance."""
         ...
 
+    # ---------------------- DELETE ----------------------
     @abstractmethod
     def delete(self, entity_id: ID) -> bool:
         """Delete an ORM entity. Returns True if deleted."""
