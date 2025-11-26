@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.database.orm_mapper import Base
+from src.database.base import Base
 
 # Load environment variables from .env file
 load_dotenv()
