@@ -6,7 +6,7 @@ from src.models.results.stage_result import StageResult
 import threading
 from pathlib import Path
 
-from src.pipeline.stage.context import PipelineContext
+from src.pipeline.context.context import PipelineContext
 
 # Map output path -> threading.Lock to coordinate writes from multiple threads.
 _file_locks: Dict[str, threading.Lock] = {}

@@ -9,7 +9,7 @@ from src.models.record.record_factory import process_record
 from src.models.record.transport_record import TransportRecord
 from src.models.results.stage_result import StageResult
 from src.reader.dump_reader import DumpReader
-from src.pipeline.stage.context import PipelineContext
+from src.pipeline.context.context import PipelineContext
 from src.pipeline.stage.interface import StageInterface
 
 logger = logging.getLogger(__name__)

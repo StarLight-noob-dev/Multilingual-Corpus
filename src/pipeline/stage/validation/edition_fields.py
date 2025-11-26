@@ -4,8 +4,7 @@ from typing import override, Dict, Any
 from src.logger import get_logger
 from src.models.record.edition_record import EditionRecord
 from src.models.results.stage_result import StageResult
-from src.models.results.types import Ok, Err
-from src.pipeline.stage.context import PipelineContext
+from src.pipeline.context.context import PipelineContext
 from src.pipeline.stage.interface import StageInterface
 
 
