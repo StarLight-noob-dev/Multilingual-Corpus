@@ -1,69 +1,72 @@
-import os
+from time import sleep
 
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, text, Engine
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy_utils import database_exists, create_database
 
 from src.database.base import Base
-
-# Load environment variables from .env file
-load_dotenv()
-
-# --- Load database config from environment (.env values or defaults) ---
-DB_USER = os.getenv("DB_USER", "thesis_user")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "thesis_password")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "thesis_db")
-
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-TEST_DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}_test"
+from src.database.config import (
+    DATABASE_URL,
+    TEST_DATABASE_URL
+)
 
 # --- Create SQLAlchemy engine ---
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Standard engine creation for the main application
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
+    echo=True
+)
 
-# For multiprocessing safety, we create engines/sessions on demand per process
-_engine = None
-_SessionLocal = None
+# Standard SessionLocal setup for application use
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
-def get_session_maker():
-    """
-    Returns a new session-maker instance.
 
-    This functions ensures that get an independent session-maker with its own engine for each
-    process, avoiding cross-process connection sharing issues.
+def get_db() -> Session:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-    Meant to be used in the DB related stages of multiprocessing.Pool workers.
-    """
-    global _engine, _SessionLocal
-    if _engine is None:
-        _engine = create_engine(
-            DATABASE_URL,
-            pool_pre_ping=True,
-            pool_size=5,
-            max_overflow=10,
-            echo=False
-        )
-        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
-    return _SessionLocal
 
-def init_db():
-    """Initializes the database connection and creates the tables based on the ORM models."""
-    engine_ = create_engine(DATABASE_URL)
-    Base.metadata.create_all(engine_)
-    engine_.dispose()
+def init_app_db() -> None:
+    print("Initializing application tables...")
+    Base.metadata.create_all(bind=engine)
 
-def init_test_db():
-    """Initializes the test database connection and creates the tables based on the ORM models."""
-    engine_ = create_engine(TEST_DATABASE_URL)
-    Base.metadata.create_all(engine_)
-    engine_.dispose()
 
-def get_test_engine():
-    """Returns a SQLAlchemy engine for the test database."""
-    return create_engine(TEST_DATABASE_URL)
+def get_test_engine(max_retries: int = 5, delay_sec: int = 1, echo: bool = False) -> Engine | None:
+    # Ensure the test database exists and create it if not
+    if not database_exists(TEST_DATABASE_URL):
+        print(f"Creating test database {TEST_DATABASE_URL}")
+        create_database(TEST_DATABASE_URL)
 
-def get_test_sessionmaker():
-    """Returns a sessionmaker for the test database."""
-    return sessionmaker(autocomit=False, autoflush=False, bind=get_test_engine())
+    # Retry logic to wait for the database to be ready
+    for attempt in range(max_retries):
+        try:
+            test_engine = create_engine(TEST_DATABASE_URL, echo=echo)
+            with test_engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            print(f"Successfully connected to test database {TEST_DATABASE_URL} on attempt {attempt + 1}")
+            return test_engine
+        except Exception as e:
+            if "database" in str(e) and "does not exist" in str(e):
+                print(f"Attempt {attempt + 1}: Database is not ready yet. Retrying in {delay_sec} seconds...")
+                sleep(delay_sec)
+            else:
+                # For other exceptions, re-raise immediately
+                raise
+        raise Exception(f"Failed to connect to test database {TEST_DATABASE_URL} after {max_retries} attempts.")
+
+
+def drop_test_db() -> None:
+    if database_exists(TEST_DATABASE_URL):
+        print(f"Dropping test database {TEST_DATABASE_URL}")
+        from sqlalchemy_utils import drop_database
+        drop_database(TEST_DATABASE_URL)
