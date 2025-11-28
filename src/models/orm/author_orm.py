@@ -5,6 +5,17 @@ from src.database.base import Base
 
 
 class AuthorORM(Base):
+    """
+    ORM model for an Author entity in the database.
+    
+    Attributes:
+        _ol_id (str): The Open Library ID of the author (primary key).
+        name (str): The name of the author.
+        birth_date (int): The birthdate of the author (year).
+        death_date (int): The death date of the author (year).
+        is_death_date_exact (bool): Flag indicating if the death date is exact.
+        _work_count (int): The number of works associated with the author.
+    """
     __tablename__ = "authors"
 
     _ol_id: Mapped[str] = mapped_column("id", String, primary_key=True)
