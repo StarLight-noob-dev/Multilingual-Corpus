@@ -81,11 +81,37 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, ID]):
         return []
 
     def get_by_id(self, entity_id: ID) -> Optional[T_DOMAIN]:
-        """Return one entity by its ID or None."""
+        """
+        Return an entity by its ID or None if not found.
+
+        Args:
+            entity_id (ID): The primary key of the entity to retrieve.
+
+        Returns:
+            Optional[T_DOMAIN]: The domain model instance if found, else None.
+        """
         orm_entity = self.session.get(self.model, entity_id)
         if orm_entity is None:
             return None
         return self.to_domain(orm_entity)
+
+    def get_many_by_ids(self, entity_ids: List[ID]) -> Optional[List[T_DOMAIN]]:
+        """
+        Return multiple entities by their IDs or None if none found.
+
+        Args:
+            entity_ids (List[ID]): List of primary keys of the entities to retrieve.
+
+        Returns:
+            Optional[List[T_DOMAIN]]: List of domain model instances if found, else None.
+        """
+        if not entity_ids:
+            return None
+        stmt = select(self.model).where(getattr(self.model, self.pk_name) in entity_ids)
+        orm_entities: List[T_ORM] = list(self.session.scalars(stmt).all())
+        if not orm_entities:
+            return None
+        return [self.to_domain(e) for e in orm_entities]
 
     def get_all(self) -> List[T_DOMAIN]:
         """Return all entities."""
