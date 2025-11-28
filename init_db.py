@@ -1,8 +1,7 @@
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
-from src.database.database import init_db, SessionLocal
-
+from src.database.database import SessionLocal, init_app_db
 
 def check_db_connection():
     """Checks if the database connection can be established."""
@@ -18,7 +17,7 @@ def check_db_connection():
 
 if __name__ == "__main__":
     if check_db_connection():
-        print("Creating database tables...")
-        init_db()
+        import src.models.orm as orm # Ensure ORM models are imported for table creation
+        init_app_db()
         print("Database tables created successfully.")
 
