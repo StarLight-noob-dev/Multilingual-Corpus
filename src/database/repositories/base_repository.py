@@ -1,9 +1,9 @@
-from abc import abstractmethod, ABC
-from typing import Generic, Optional, List, Type, Iterable, Dict, Any, TypeVar, TypeAlias, Callable
-from sqlalchemy import select, update, values, delete
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session
+from abc import ABC
+from typing import Generic, Optional, List, Type, Iterable, Any, TypeVar, TypeAlias, Callable
 
+from sqlalchemy import select, update, delete
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import Session
 
 T_ORM = TypeVar("T_ORM")  # ORM Model Type
 T_DOMAIN = TypeVar("T_DOMAIN")  # Domain Model Type
@@ -53,18 +53,32 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, ID]):
         return self.to_domain(orm)
 
 
-    def create_many(self, entities: Iterable[T_DOMAIN], conflict_index: Optional[List[str]] = None) -> None:
+    def create_many(self, entities: Iterable[T_DOMAIN], conflict_index: Optional[List[str]] = None) -> List[T_DOMAIN]:
         """
-        Batch insert multiple entities efficiently using PostgreSQL's ON CONFLICT.
-        # TODO cahnge value type to Iterable[T] and see how to insert that way, also see if it should return the inserted entities
+        Create multiple entities in a batch operation with optional conflict handling.
+
+        Args:
+            entities (Iterable[T_DOMAIN]): An iterable of domain model instances to persist.
+            conflict_index (Optional[List[str]]): List of column names to use for conflict detection. If provided,
+            conflicts will be ignored. (e.g., _ol_id for most models)
+
+        Returns:
+            List[T_DOMAIN]: An empty list (as per current implementation).
         """
         orm_dict = [self.to_orm(e).__dict__ for e in entities]
-
+        stmt = self.model.__table__.insert()
         if conflict_index:
-            stmt = stmt.on_conflict_do_nothing(index_elements=conflict_index)
-        self.session.execute(stmt)
-        self.session.commit()
-
+            stmt = insert(self.model).on_conflict_do_nothing(
+                index_elements=conflict_index
+            )
+            self.session.execute(stmt)
+        else:
+            self.session.execute(
+                stmt,
+                orm_dict
+            )
+            self.session.commit()
+        return []
 
     def get_by_id(self, entity_id: ID) -> Optional[T_DOMAIN]:
         """Return one entity by its ID or None."""
