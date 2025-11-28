@@ -1,30 +1,22 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Any, List, override
 
-from sqlalchemy import String, Integer, JSON
-from sqlalchemy.orm import Mapped, mapped_column
-
-from src.database.base import Base
 from src.models.record.interface import IRecord
 
 
 @dataclass
-class EditionRecord(Base, IRecord):
+class EditionRecord(IRecord):
     """Class representing an edition record."""
-    __tablename__ = "editions"
 
-    _ol_id: Mapped[str] = mapped_column("id", primary_key=True)  # Open Library Identifier
-    _ocaid: Mapped[str] = mapped_column("ocaid", String, nullable=False)  # Internet Archive Identifier
-    title: Mapped[str] = mapped_column("title", String, nullable=False)
-
-    publishing_date: Mapped[int] = mapped_column("publishing_date", Integer, default=-1)
-    copyright_date: Mapped[int] = mapped_column("copyright_date", Integer, default=-1)
-
-    authors: Mapped[List[str]] = mapped_column("authors", JSON, default=list)
-    languages: Mapped[List[str]] = mapped_column("languages", JSON, default=list)
-    isbn_10: Mapped[List[str]] = mapped_column("isbn_10", JSON, default=list)
-    isbn_13: Mapped[List[str]] = mapped_column("isbn_13", JSON, default=list)
-    works: Mapped[List[str]] = mapped_column("works", JSON, default=list)
+    _ocaid: str  # Internet Archive Identifier
+    title: str
+    publishing_date: int
+    copyright_date: int
+    authors: List[str] = field(default_factory=list)  # List of author IDs
+    languages: List[str] = field(default_factory=list)
+    isbn_10: List[str] = field(default_factory=list)
+    isbn_13: List[str] = field(default_factory=list)
+    works: List[str] = field(default_factory=list)  # List of work IDs
 
     @property
     def ocaid(self) -> str:
