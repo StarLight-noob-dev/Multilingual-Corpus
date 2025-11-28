@@ -110,7 +110,7 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, ID]):
     def delete(self, entity_id: ID) -> bool:
         stmt = delete(self.model).where(getattr(self.model, self.pk_name) == entity_id)
         result = self.session.execute(stmt)
-        if result.rowcount == 0:
+        if result.rowcount == 0: #TODO: verify if this works as intended, linter marks as problematic
             self.session.rollback()
             return False
         self.session.commit()
