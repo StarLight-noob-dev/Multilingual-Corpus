@@ -4,6 +4,7 @@ from src.models.record.author_record import AuthorRecord
 from src.models.record.edition_record import EditionRecord
 
 
+@DeprecationWarning
 class RecordMapper:
     @staticmethod
     def author_to_orm(record: AuthorRecord) -> AuthorORM:
