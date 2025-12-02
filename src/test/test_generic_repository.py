@@ -1,5 +1,3 @@
-from typing import Type
-
 import pytest
 from sqlalchemy import String, Integer
 from sqlalchemy.orm import Mapped, mapped_column, Session
@@ -33,7 +31,7 @@ class TestEntityDomain:
 
 
 # --- 2. SETUP: Concrete Test Repository (Test functionality from GenericRepository) ---
-from src.database.repositories.base_repository import GenericRepository, T_DOMAIN
+from src.database.repositories.base_repository import GenericRepository
 
 
 class TestRepo(GenericRepository[TestEntityDomain, TestEntityORM, int]):
