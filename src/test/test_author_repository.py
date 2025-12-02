@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from src.database.repositories.author_repository import AuthorRepository
 from src.models.orm.author_orm import AuthorORM
+from src.models.record.author_record import AuthorRecord
 from src.test.fixtures import session
 
 
@@ -25,12 +26,11 @@ class TestAuthorRepository:
     def test_insert_valid_author_and_its_found(self):
         self.insert_author(ol_id="A1", name="Luz")
         self.session.commit()
-        res = self.repo.get_all()
+        res = self.repo.get_by_id("A1")
 
-        assert isinstance(res, list)
-        assert len(res) == 1
-        assert res[0].id == "A1"
-        assert res[0].name == "Luz"
+        assert isinstance(res, AuthorRecord)
+        assert res.id == "A1"
+        assert res.name == "Luz"
 
     def test_get_many_by_ids_returns_entities(self):
         self.insert_author(ol_id="A1", name="Luz")
@@ -42,26 +42,36 @@ class TestAuthorRepository:
 
         assert isinstance(res, list)
         assert len(res) == 2
-        # Use attributes expected from the repository (likely properties/attributes)
         ids = {r._ol_id for r in res}
         assert ids == {"A1", "A2"}
         assert res[0].name == "Luz" or res[1].name == "Amity"
 
-    def test_get_many_by_ids_empty_and_missing_return_none(self):
-        # No authors created yet
-        assert self.repo.get_many_by_ids([]) is None
-        assert self.repo.get_many_by_ids(["NOPE"]) is None
+    def test_get_many_by_ids_empty_and_missing_return_empty_list(self):
+        # No authors in DB should return empty list
+        res = self.repo.get_many_by_ids([])
+        assert isinstance(res, list)
+        assert len(res) == 0
 
-        # Create one author and verify missing id still returns None when only missing
-        _insert_author(self.session, "A1")
-        assert self.repo.get_many_by_ids(["NOPE"]) is None
+        # Returns empty list for missing ids
+        res = self.repo.get_many_by_ids(["NOPE"])
+        assert isinstance(res, list)
+        assert len(res) == 0
+
+        # Create one author and verify missing still returns empty list
+        self.insert_author(ol_id="A1")
+        self.session.commit()
+        res = self.repo.get_many_by_ids(["NOPE"])
+        assert isinstance(res, list)
+        assert len(res) == 0
 
     def test_get_many_by_ids_partial_returns_existing(self):
-        _insert_author(self.session, "A1")
-        _insert_author(self.session, "A2")
+        self.insert_author(ol_id="A1", name="Luz")
+        self.insert_author(ol_id="A2")
+        self.session.commit()
 
         # Mixed existing + non-existing should return the existing ones (count > 0)
         res = self.repo.get_many_by_ids(["A1", "MISSING"])
         assert isinstance(res, list)
         assert len(res) == 1
         assert res[0]._ol_id == "A1"
+        assert res[0].name == "Luz"
