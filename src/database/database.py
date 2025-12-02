@@ -1,13 +1,16 @@
 from time import sleep
 
 from sqlalchemy import create_engine, text, Engine
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy_utils import database_exists, create_database
 
 from src.database.base import Base
 from src.database.config import (
+    DB_NAME,
     DATABASE_URL,
-    TEST_DATABASE_URL
+    TEST_DATABASE_URL,
+    ADMIN_DATABASE_URL
 )
 
 # --- Create SQLAlchemy engine ---
@@ -41,6 +44,11 @@ def init_app_db() -> None:
     Base.metadata.create_all(bind=engine)
 
 
+def get_admin_engine(echo: bool = False) -> Engine:
+    """Creates and returns an admin engine connected to the default 'postgres' database."""
+    return create_engine(ADMIN_DATABASE_URL, echo=echo)
+
+
 def get_test_engine(max_retries: int = 5, delay_sec: int = 1, echo: bool = False) -> Engine | None:
     # Ensure the test database exists and create it if not
     if not database_exists(TEST_DATABASE_URL):
@@ -66,7 +74,26 @@ def get_test_engine(max_retries: int = 5, delay_sec: int = 1, echo: bool = False
 
 
 def drop_test_db() -> None:
-    if database_exists(TEST_DATABASE_URL):
-        print(f"Dropping test database {TEST_DATABASE_URL}")
-        from sqlalchemy_utils import drop_database
-        drop_database(TEST_DATABASE_URL)
+    """Drops the test database after terminating all active connections to it."""
+    admin_engine = get_admin_engine()
+    try:
+        # Terminate all connections to the test database
+        # Use AUTOCOMMIT isolation level to execute DROP DATABASE
+        with admin_engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+            connection.execute(
+                text(
+                    f"""
+                    SELECT pg_terminate_backend(pg_stat_activity.pid)
+                    FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = '{DB_NAME}_test'
+                    AND pid <> pg_backend_pid();
+                    """
+                )
+            )
+            connection.execute(
+                text(f"DROP DATABASE IF EXISTS {DB_NAME}_test;")
+            )
+    except ProgrammingError as e:
+        print(f"Error dropping test database: {e}")
+    finally:
+        admin_engine.dispose()
