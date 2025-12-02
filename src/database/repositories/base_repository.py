@@ -7,13 +7,15 @@ from sqlalchemy.orm import Session
 
 T_ORM = TypeVar("T_ORM")  # ORM Model Type
 T_DOMAIN = TypeVar("T_DOMAIN")  # Domain Model Type
-ID = TypeVar("ID")  # Primary key type
+T_ID = TypeVar("T_ID")  # Primary key type
 
-class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, ID]):
+
+class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
     """
     Concrete implementation of a repository for generic CRUD operations using SQLAlchemy and a Mapper to translate
     between ORM (internal) models and domain models (external).
     """
+
     def __init__(self,
                  session: Session,
                  orm_model: Type[T_ORM],
@@ -52,7 +54,6 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, ID]):
         self.session.refresh(orm)
         return self.to_domain(orm)
 
-
     def create_many(self, entities: Iterable[T_DOMAIN], conflict_index: Optional[List[str]] = None) -> List[T_DOMAIN]:
         """
         Create multiple entities in a batch operation with optional conflict handling.
@@ -80,12 +81,12 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, ID]):
             self.session.commit()
         return []
 
-    def get_by_id(self, entity_id: ID) -> Optional[T_DOMAIN]:
+    def get_by_id(self, entity_id: T_ID) -> Optional[T_DOMAIN]:
         """
-        Return an entity by its ID or None if not found.
+        Return an entity by its id or None if not found.
 
         Args:
-            entity_id (ID): The primary key of the entity to retrieve.
+            entity_id (T_ID): The primary key of the entity to retrieve.
 
         Returns:
             Optional[T_DOMAIN]: The domain model instance if found, else None.
@@ -95,47 +96,71 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, ID]):
             return None
         return self.to_domain(orm_entity)
 
-    def get_many_by_ids(self, entity_ids: List[ID]) -> List[T_DOMAIN]:
+    def get_many_by_ids(self, entity_ids: List[T_ID]) -> List[T_DOMAIN]:
         """
-        Return multiple entities by their IDs or None if none found.
+        Return multiple entities by their ID's or None if none found.
 
         Args:
-            entity_ids (List[ID]): List of primary keys of the entities to retrieve.
+            entity_ids (List[T_ID]): List of primary keys of the entities to retrieve.
 
         Returns:
             List[T_DOMAIN]: List of domain model instances if found, else an empty List.
         """
         if not entity_ids:
             return []
-        stmt = select(self.model).where(getattr(self.model, self.pk_name) in entity_ids)
+        pk_colum = getattr(self.model, self.pk_name)
+        stmt = select(self.model).where(pk_colum.in_(entity_ids))
         orm_entities: List[T_ORM] = list(self.session.scalars(stmt).all())
         return [self.to_domain(e) for e in orm_entities]
 
     def get_all(self) -> List[T_DOMAIN]:
-        """Return all entities."""
+        """
+        Return all entities.
+
+        Returns:
+            List[T_DOMAIN]: List of all domain model instances.
+        """
         stmt = select(self.model)
         orm_entities: List[T_ORM] = list(self.session.scalars(stmt).all())
         return [self.to_domain(e) for e in orm_entities]
 
-    def update(self, entity_id: ID, **fields: Any) -> Optional[T_DOMAIN]:
-        """Update an entity by its ID and return the updated T_DOMAIN."""
+    def update(self, entity_id: T_ID, **fields: Any) -> Optional[T_DOMAIN]:
+        """
+        Update an entity by its ID with the provided fields.
+
+        Args:
+            entity_id (T_ID): The primary key of the entity to update.
+            **fields (Any): Fields to update on the entity.
+
+        Returns:
+            Optional[T_DOMAIN]: The updated domain model instance if found, else None.
+        """
         stmt = (
             update(self.model)
             .where(getattr(self.model, self.pk_name) == entity_id)
             .values(**fields)
+            .execution_options(synchronize_session="fetch")
         )
-        result = self.session.execute(stmt)
-        if result.rowcount == 0:
-            self.session.rollback()
-            return None
+        self.session.execute(stmt)
         self.session.commit()
-        return self.get_by_id(entity_id)
+        updated_entity = self.get_by_id(entity_id)
+        if updated_entity is None:
+            return None
+        return updated_entity
 
-    def delete(self, entity_id: ID) -> bool:
+    def delete(self, entity_id: T_ID) -> bool:
+        """
+        Delete an entity by its ID.
+
+        Args:
+            entity_id (T_ID): The primary key of the entity to delete.
+
+        Returns:
+            bool: True if the entity was deleted, False otherwise.
+        """
         stmt = delete(self.model).where(getattr(self.model, self.pk_name) == entity_id)
         result = self.session.execute(stmt)
-        if result.rowcount == 0: #TODO: verify if this works as intended, linter marks as problematic
-            self.session.rollback()
+        if result.rowcount == 0:
             return False
         self.session.commit()
         return True
