@@ -18,7 +18,7 @@ class AuthorORM(Base):
     """
     __tablename__ = "authors"
 
-    _ol_id: Mapped[str] = mapped_column("id", String, primary_key=True)
+    ol_id: Mapped[str] = mapped_column("ol_id", String, primary_key=True)
     name: Mapped[str] = mapped_column("name", String, nullable=False)
     birth_date: Mapped[int] = mapped_column("birth_date", Integer, nullable=False, default=-1)
     death_date: Mapped[int] = mapped_column("death_date", Integer, nullable=False, default=-1)

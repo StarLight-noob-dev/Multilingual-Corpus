@@ -23,8 +23,8 @@ class EditionORM(Base):
     """
     __tablename__ = "editions"
 
-    _ol_id: Mapped[str] = mapped_column("id", String, primary_key=True)
-    _ocaid: Mapped[str] = mapped_column(String, nullable=False)
+    ol_id: Mapped[str] = mapped_column("ol_id", String, primary_key=True)
+    ocaid: Mapped[str] = mapped_column("ocaid", String, nullable=False)
     title: Mapped[str] = mapped_column(String)
     publishing_date: Mapped[int] = mapped_column(Integer)
     copyright_date: Mapped[int] = mapped_column(Integer)

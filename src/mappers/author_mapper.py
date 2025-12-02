@@ -16,7 +16,7 @@ class AuthorMapper:
     @staticmethod
     def _single_to_domain(orm: AuthorORM) -> AuthorRecord:
         author = AuthorRecord(
-            _ol_id=orm._ol_id,
+            _ol_id=orm.ol_id,
             name=orm.name,
             birth_date=orm.birth_date,
             death_date=orm.death_date,
@@ -35,7 +35,7 @@ class AuthorMapper:
     @staticmethod
     def _single_to_orm(domain_entity: AuthorRecord) -> AuthorORM:
         return AuthorORM(
-            _ol_id=domain_entity._ol_id,
+            ol_id=domain_entity._ol_id,
             name=domain_entity.name,
             birth_date=domain_entity.birth_date,
             death_date=domain_entity.death_date,
