@@ -1,3 +1,5 @@
+from typing import Iterator
+
 import pytest
 from sqlalchemy.orm import Session
 
@@ -26,7 +28,7 @@ def engine():
 
 
 @pytest.fixture(scope="function")
-def session(engine):
+def session(engine) -> Iterator[Session]:
     """
     Provides a transactional session, ensuring each test is isolated.
     Changes are rolled back after the test completes.
