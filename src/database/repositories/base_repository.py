@@ -1,64 +1,166 @@
-from typing import Generic, Optional, List, Type, Iterable, Dict
-from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+from abc import ABC
+from typing import Generic, Optional, List, Type, Iterable, Any, TypeVar, TypeAlias, Callable
+
+from sqlalchemy import select, update, delete
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from src.database.repositories.repository_interface import IRepository, T, ID
+T_ORM = TypeVar("T_ORM")  # ORM Model Type
+T_DOMAIN = TypeVar("T_DOMAIN")  # Domain Model Type
+T_ID = TypeVar("T_ID")  # Primary key type
 
 
-class BaseRepository(Generic[T, ID], IRepository[T, ID]):
+class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
     """
-    A type-safe base repository for ORM models.
-    Provides CRUD operations using SQLAlchemy ORM only.
+    Concrete implementation of a repository for generic CRUD operations using SQLAlchemy and a Mapper to translate
+    between ORM (internal) models and domain models (external).
     """
 
-    def __init__(self, session: Session, model: Type[T]):
+    def __init__(self,
+                 session: Session,
+                 orm_model: Type[T_ORM],
+                 to_domain_mapper: TypeAlias = Callable[[T_ORM | List[T_ORM]], T_DOMAIN | List[T_DOMAIN]],
+                 to_orm_mapper: TypeAlias = Callable[[T_DOMAIN | List[T_DOMAIN]], T_ORM | List[T_ORM]]
+                 ):
+        """
+        Initialize the repository with a SQLAlchemy session and model.
+
+        Args:
+            session (Session): SQLAlchemy session for database operations.
+            orm_model (Type[T_ORM]): The specific SQLAlchemy ORM model class this repository manages.
+            to_domain_mapper (Callable): Function that converts T_ORM -> T_DOMAIN.
+            from_domain_mapper (Callable): Function that converts T_DOMAIN -> T_ORM.
+        """
         self.session = session
-        self.model = model
-        self.pk = model.__mapper__.primary_key[0]
+        self.model = orm_model
+        self.to_domain = to_domain_mapper
+        self.to_orm = to_orm_mapper
+        # Get primary key name from the model's mapper
+        self.pk_name = self.model.__mapper__.primary_key[0].name
 
-    def create(self, **fields) -> T:
-        entity = self.model(**fields)
-        self.session.add(entity)
+    def create(self, entity: T_DOMAIN) -> T_DOMAIN:
+        """
+        Create a new entity bt mapping T_DOMAIN to T_ORM and inserting it into the database.
+
+        Args:
+            entity (T_DOMAIN): The domain model instance to create.
+
+        Returns:
+            T_DOMAIN: The created domain model instance with updated fields (e.g., ID).
+        """
+        orm = self.to_orm(entity)
+        self.session.add(orm)
         self.session.commit()
-        self.session.refresh(entity)
-        return entity
+        self.session.refresh(orm)
+        return self.to_domain(orm)
 
-    def create_many(self, values: Iterable[Dict], conflict_index: Optional[List[str]] = None) -> None:
+    def create_many(self, entities: Iterable[T_DOMAIN], conflict_index: Optional[List[str]] = None) -> List[T_DOMAIN]:
         """
-        Batch insert multiple entities efficiently using PostgreSQL's ON CONFLICT.
-        # TODO cahnge value type to Iterable[T] and see how to insert that way, also see if it should return the inserted entities
+        Create multiple entities in a batch operation with optional conflict handling.
+
+        Args:
+            entities (Iterable[T_DOMAIN]): An iterable of domain model instances to persist.
+            conflict_index (Optional[List[str]]): List of column names to use for conflict detection. If provided,
+            conflicts will be ignored. (e.g., _ol_id for most models)
+
+        Returns:
+            List[T_DOMAIN]: An empty list (as per current implementation).
         """
-        stmt = pg_insert(self.model).values(list(values))
+        orm_dict = [self.to_orm(e).__dict__ for e in entities]
+        stmt = self.model.__table__.insert()
         if conflict_index:
-            stmt = stmt.on_conflict_do_nothing(index_elements=conflict_index)
+            stmt = insert(self.model).on_conflict_do_nothing(
+                index_elements=conflict_index
+            )
+            self.session.execute(stmt)
+        else:
+            self.session.execute(
+                stmt,
+                orm_dict
+            )
+            self.session.commit()
+        return []
+
+    def get_by_id(self, entity_id: T_ID) -> Optional[T_DOMAIN]:
+        """
+        Return an entity by its id or None if not found.
+
+        Args:
+            entity_id (T_ID): The primary key of the entity to retrieve.
+
+        Returns:
+            Optional[T_DOMAIN]: The domain model instance if found, else None.
+        """
+        orm_entity = self.session.get(self.model, entity_id)
+        if orm_entity is None:
+            return None
+        return self.to_domain(orm_entity)
+
+    def get_many_by_ids(self, entity_ids: List[T_ID]) -> List[T_DOMAIN]:
+        """
+        Return multiple entities by their ID's or None if none found.
+
+        Args:
+            entity_ids (List[T_ID]): List of primary keys of the entities to retrieve.
+
+        Returns:
+            List[T_DOMAIN]: List of domain model instances if found, else an empty List.
+        """
+        if not entity_ids:
+            return []
+        pk_colum = getattr(self.model, self.pk_name)
+        stmt = select(self.model).where(pk_colum.in_(entity_ids))
+        orm_entities: List[T_ORM] = list(self.session.scalars(stmt).all())
+        return [self.to_domain(e) for e in orm_entities]
+
+    def get_all(self) -> List[T_DOMAIN]:
+        """
+        Return all entities.
+
+        Returns:
+            List[T_DOMAIN]: List of all domain model instances.
+        """
+        stmt = select(self.model)
+        orm_entities: List[T_ORM] = list(self.session.scalars(stmt).all())
+        return [self.to_domain(e) for e in orm_entities]
+
+    def update(self, entity_id: T_ID, **fields: Any) -> Optional[T_DOMAIN]:
+        """
+        Update an entity by its ID with the provided fields.
+
+        Args:
+            entity_id (T_ID): The primary key of the entity to update.
+            **fields (Any): Fields to update on the entity.
+
+        Returns:
+            Optional[T_DOMAIN]: The updated domain model instance if found, else None.
+        """
+        stmt = (
+            update(self.model)
+            .where(getattr(self.model, self.pk_name) == entity_id)
+            .values(**fields)
+            .execution_options(synchronize_session="fetch")
+        )
         self.session.execute(stmt)
         self.session.commit()
-
-    def get_by_id(self, entity_id: ID) -> Optional[T]:
-        stmt = select(self.model).where(self.pk == entity_id) #TODO might need to be .equals()? do a test
-        result = self.session.execute(stmt)
-        return result
-
-    def get_all(self) -> List[T]:
-        stmt = select(self.model)
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
-
-    def update(self, entity_id: ID, **fields) -> Optional[T]:
-        entity = self.get_by_id(entity_id)
-        if not entity:
+        updated_entity = self.get_by_id(entity_id)
+        if updated_entity is None:
             return None
-        for key, value in fields.items():
-            setattr(entity, key, value)
-        self.session.commit()
-        self.session.refresh(entity)
-        return entity
+        return updated_entity
 
-    def delete(self, entity_id: ID) -> bool:
-        entity = self.get_by_id(entity_id)
-        if not entity:
+    def delete(self, entity_id: T_ID) -> bool:
+        """
+        Delete an entity by its ID.
+
+        Args:
+            entity_id (T_ID): The primary key of the entity to delete.
+
+        Returns:
+            bool: True if the entity was deleted, False otherwise.
+        """
+        stmt = delete(self.model).where(getattr(self.model, self.pk_name) == entity_id)
+        result = self.session.execute(stmt)
+        if result.rowcount == 0:
             return False
-        self.session.delete(entity)
         self.session.commit()
         return True

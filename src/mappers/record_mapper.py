@@ -4,11 +4,12 @@ from src.models.record.author_record import AuthorRecord
 from src.models.record.edition_record import EditionRecord
 
 
+@DeprecationWarning
 class RecordMapper:
     @staticmethod
     def author_to_orm(record: AuthorRecord) -> AuthorORM:
         return AuthorORM(
-            _ol_id=record._ol_id,
+            ol_id=record._ol_id,
             name=record.name,
             birth_date=record.birth_date,
             death_date=record.death_date,
@@ -19,7 +20,7 @@ class RecordMapper:
     @staticmethod
     def orm_to_author(orm: AuthorORM) -> AuthorRecord:
         author = AuthorRecord(
-            _ol_id=orm._ol_id,
+            _ol_id=orm.ol_id,
             name=orm.name,
             birth_date=orm.birth_date,
             death_date=orm.death_date,
@@ -31,8 +32,8 @@ class RecordMapper:
     @staticmethod
     def edition_to_orm(record: EditionRecord) -> EditionORM:
         return EditionORM(
-            _ol_id=record._ol_id,
-            _ocaid=record._ocaid,
+            ol_id=record._ol_id,
+            ocaid=record._ocaid,
             title=record.title,
             publishing_date=record.publishing_date,
             copyright_date=record.copyright_date,

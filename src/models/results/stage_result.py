@@ -25,11 +25,11 @@ class StageResult(Generic[T, E]):
         self.success: List[Ok[T]] = []
         self.failed: List[Err[E]] = []
 
-    def add_ok(self, record: Any[T]) -> None:
+    def add_ok(self, record: T) -> None:
         """Add a successful Ok[T] result."""
         self.success.append(Ok(record))
 
-    def add_err(self, error: Any[E]) -> None:
+    def add_err(self, error: E) -> None:
         """Add an Err[E] failure result."""
         self.failed.append(Err(error))
 

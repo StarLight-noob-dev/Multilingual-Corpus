@@ -1,21 +1,24 @@
-from typing import List, Optional
+from typing import List
 
 from sqlalchemy.orm import Session
 
+from src.database.repositories.base_repository import GenericRepository
+from src.mappers.author_mapper import AuthorMapper
 from src.models.orm.author_orm import AuthorORM
-from src.database.repositories.base_repository import BaseRepository
+from src.models.record.author_record import AuthorRecord
 
 
-class AuthorRepository(BaseRepository[AuthorORM, str]):
-    """
-    Concrete repository for AuthorORM entities.
-    Inherits all CRUD operations from BaseRepository.
-    """
-
+class AuthorRepository(GenericRepository[AuthorRecord, AuthorORM, str]):
     def __init__(self, session: Session):
-        super().__init__(session=session, model=AuthorORM)
+        super().__init__(
+            session=session,
+            orm_model=AuthorORM,
+            to_domain_mapper=AuthorMapper.to_domain,
+            to_orm_mapper=AuthorMapper.to_orm
+        )
 
-    def get_many_by_ids(self, author_ids: List[str]) -> Optional[List[AuthorORM]]:
-        """Retrieve multiple authors by their IDs."""
-        result = [self.get_by_id(id) for id in author_ids]
-        return result if any(result) else None
+    def bulk_insert(self, records: List[AuthorRecord]) -> None:
+        self.create_many(
+            records,
+            conflict_index=['_ol_id']
+        )

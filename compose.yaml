@@ -12,19 +12,9 @@ services:
       volumes:
           - db_data:/var/lib/postgresql/data
 
-    db_test:
-      image: postgres:18.0-alpine
-      container_name: postgres_db_test
-      restart: "no"
-      environment:
-        POSTGRES_USER: ${DB_USER:-user}
-        POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-        POSTGRES_DB: ${DB_NAME:-mydatabase}
-      ports:
-        - "5433:5432"
-
 volumes:
   db_data:
 
 # docker exec -it postgres_db sh
 # psql -h localhost -U thesis_user -d thesis_db
+# docker compose down -v
