@@ -47,7 +47,6 @@ class TestRepo(GenericRepository[TestEntityDomain, TestEntityORM, int]):
             to_orm_mapper=self.to_orm
         )
 
-
     def to_domain(self, orm_entity: TestEntityORM) -> TestEntityDomain:
         return TestEntityDomain(id=orm_entity.id, value=orm_entity.value)
 
