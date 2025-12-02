@@ -17,7 +17,7 @@ def check_db_connection():
 
 if __name__ == "__main__":
     if check_db_connection():
-        import src.models.orm as orm # Ensure ORM models are imported for table creation
+        import src.models.orm as orm # noqa: F401
         init_app_db()
         print("Database tables created successfully.")
 
