@@ -17,3 +17,4 @@ volumes:
 
 # docker exec -it postgres_db sh
 # psql -h localhost -U thesis_user -d thesis_db
+# docker compose down -v
