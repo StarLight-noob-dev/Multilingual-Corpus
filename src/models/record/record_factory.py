@@ -8,7 +8,7 @@ from src.models.record.edition_record import EditionRecord
 from src.models.record.interface import IRecord
 from src.models.record.transport_record import TransportRecord
 from src.models.record.work_record import WorkRecord
-from src.utils.year_parsing import extract_year
+from src.common.year_parsing import extract_year
 
 logger = logging.getLogger(__name__)
 

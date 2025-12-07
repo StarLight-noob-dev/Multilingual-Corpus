@@ -1,4 +1,4 @@
-from src.utils.year_parsing import extract_year
+from src.common.year_parsing import extract_year
 
 class TestDateParsing:
     def test_simple_exact_year(self):
