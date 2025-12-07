@@ -31,7 +31,7 @@ class TestEntityDomain:
 
 
 # --- 2. SETUP: Concrete Test Repository (Test functionality from GenericRepository) ---
-from src.database.repositories.base_repository import GenericRepository
+from src.repositories.base_repository import GenericRepository
 
 
 class TestRepo(GenericRepository[TestEntityDomain, TestEntityORM, int]):

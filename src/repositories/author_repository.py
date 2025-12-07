@@ -2,7 +2,7 @@ from typing import List
 
 from sqlalchemy.orm import Session
 
-from src.database.repositories.base_repository import GenericRepository
+from src.repositories.base_repository import GenericRepository
 from src.mappers.author_mapper import AuthorMapper
 from src.models.orm.author_orm import AuthorORM
 from src.models.record.author_record import AuthorRecord

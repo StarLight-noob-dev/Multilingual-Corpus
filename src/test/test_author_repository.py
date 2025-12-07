@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from src.database.repositories.author_repository import AuthorRepository
+from src.repositories.author_repository import AuthorRepository
 from src.models.orm.author_orm import AuthorORM
 from src.models.record.author_record import AuthorRecord
 from src.test.fixtures import session
