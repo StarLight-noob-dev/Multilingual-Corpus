@@ -42,7 +42,7 @@ class CountingStage(StageInterface):
     _LOCK_FILE = LOCK_FILE
     _LOG_DIR = LOG_SUBDIR
 
-    def __init__(self, usage_key: str, stage_id: str = "", stage_name: str = "CountingStage2"):
+    def __init__(self, usage_key: str, stage_id: str = "", stage_name: str = "CountingStage"):
         super().__init__(stage_id=stage_id, stage_name=stage_name)
         self.usage_key = usage_key
         self._local_count = 0
