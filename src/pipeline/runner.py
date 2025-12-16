@@ -35,7 +35,7 @@ def worker_thread(file_name: str,
     It will create an entry stage result from the batch containing TransportRecords. This means that
     is not necessary to have a specific stage to read the records, but the user must ensure that the
     following stage can handle TransportRecords as input and that contracts from the stages after
-    that are satisfied.
+    are satisfied.
 
     Args:
         file_name (str): The name of the file to read data from.
@@ -82,9 +82,10 @@ def worker_thread(file_name: str,
 
 
 def process_chunks_in_pool(stage_factory: List[Callable[[], StageInterface]],
-                   ctx_factory: List[Callable[[], PipelineContext]],
-                   data_chunks: List[Chunk],
-                   num_threads: int = 4) -> None:
+                           ctx_factory: List[Callable[[], PipelineContext]],
+                           data_chunks: List[Chunk],
+                           batch_size: int = 250,
+                           num_threads: int = 4) -> None:
     """
     Process multiple data chunks in parallel using a pool of worker threads. Calling `worker_thread`
     for each chunk.
@@ -99,7 +100,7 @@ def process_chunks_in_pool(stage_factory: List[Callable[[], StageInterface]],
         p.starmap(
             worker_thread,
             [
-                (chunk.file_name, chunk.start, chunk.end, 250, f"Thread-{i}", stage_factory, ctx_factory)
+                (chunk.file_name, chunk.start, chunk.end, batch_size, f"Thread-{i}", stage_factory, ctx_factory)
                 for i, chunk in enumerate(data_chunks)
             ]
         )
@@ -148,12 +149,12 @@ def _initialize_stages(stage_factory: List[Callable[[], StageInterface]],
     comb = zip(stages, context)
     s: List[Tuple[StageInterface, PipelineContext]] = list(comb)
 
-    for i, stage, ctx in enumerate(s):
+    for i, (stage, ctx) in enumerate(s):
         if not isinstance(stage, StageInterface):
             raise ValueError(f"stage_factory[{i}] did not produce a StageInterface instance")
         if not isinstance(ctx, PipelineContext):
             raise ValueError(f"ctx_factory[{i}] did not produce a PipelineContext instance")
-        stage.initialize(stage_id=i, ctx=ctx)
+        stage.initialize(stage_id=str(i), ctx=ctx)
         logger.debug(f"Initialized stage {i}: {stage.__class__.__name__} with context {ctx}")
 
     return s
