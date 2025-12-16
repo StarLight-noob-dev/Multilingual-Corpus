@@ -5,3 +5,4 @@ asyncpg
 sqlalchemy
 sqlalchemy-utils
 python-dateutil
+filelock
