@@ -49,3 +49,7 @@ class LanguageFlags:
 class LanguageContext(PipelineContext):
     flags: LanguageFlags = LanguageFlags()
     io: IOFlags = IOFlags()
+
+@dataclass(frozen=True)
+class DummyContext(PipelineContext):
+    pass
