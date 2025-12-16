@@ -26,11 +26,11 @@ class CountingStage(StageInterface):
 
     Usage:
 
-    1. Before starting the pipeline, call `CountingStage2.reset_summary()` to clear any existing summary.
+    1. Before starting the pipeline, call `CountingStage.reset_summary()` to clear any existing summary.
     2. Each instance of `CountingStage` should be initialized with a unique `usage_key`.
     3. During processing, the stage counts records in `process_batch`.
     4. On shutdown, it aggregates the local count into the shared JSON file using file locking.
-    5. The final aggregate counts can be retrieved using `CountingStage2.get_total_summary()`.
+    5. The final aggregate counts can be retrieved using `CountingStage.get_total_summary()`.
     """
     # Class-level cached file paths and lock
     _CACHED_JSON_PATH: Optional[Path] = None
