@@ -11,6 +11,12 @@ class TestEntityORM(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     value: Mapped[str] = mapped_column(String)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "value": self.value
+        }
+
 
 # A simple Domain Model for testing
 class TestEntityDomain:
@@ -117,6 +123,20 @@ class TestGenericRepositoryMethods:
         # Verify persistence (must fetch with a clean session to be sure)
         fetched_entity = self.repo.get_by_id(2)
         assert fetched_entity == new_entity
+
+    def test_create_many_adds_multiple_entities(self):
+        entities_to_create = [
+            TestEntityDomain(id=5, value="Entity 5"),
+            TestEntityDomain(id=6, value="Entity 6"),
+            TestEntityDomain(id=7, value="Entity 7"),
+        ]
+
+        self.repo.create_many(entities_to_create, conflict_index=["id"])
+
+        # Verify persistence
+        for entity in entities_to_create:
+            fetched_entity = self.repo.get_by_id(entity.id)
+            assert fetched_entity == entity
 
     def test_update_modifies_entity(self):
         self._insert_entity(entity_id=3, value="Old Value")

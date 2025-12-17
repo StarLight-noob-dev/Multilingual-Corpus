@@ -66,10 +66,10 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             List[T_DOMAIN]: An empty list (as per current implementation).
         """
-        orm_dict = [self.to_orm(e).__dict__ for e in entities]
+        orm_dict = [self.to_orm(e).to_dict() for e in entities]
         stmt = self.model.__table__.insert()
         if conflict_index:
-            stmt = insert(self.model).on_conflict_do_nothing(
+            stmt = insert(self.model).values(orm_dict).on_conflict_do_nothing(
                 index_elements=conflict_index
             )
             self.session.execute(stmt)

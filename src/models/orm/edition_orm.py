@@ -33,3 +33,17 @@ class EditionORM(Base):
     isbn_10: Mapped[list[str]] = mapped_column(JSONB, default=list)
     isbn_13: Mapped[list[str]] = mapped_column(JSONB, default=list)
     works: Mapped[list[str]] = mapped_column(JSONB, default=list)
+
+    def to_dict(self):
+        return {
+            "ol_id": self.ol_id,
+            "ocaid": self.ocaid,
+            "title": self.title,
+            "publishing_date": self.publishing_date,
+            "copyright_date": self.copyright_date,
+            "authors": self.authors,
+            "languages": self.languages,
+            "isbn_10": self.isbn_10,
+            "isbn_13": self.isbn_13,
+            "works": self.works
+        }
