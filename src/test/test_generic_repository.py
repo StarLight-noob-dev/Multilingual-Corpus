@@ -138,6 +138,25 @@ class TestGenericRepositoryMethods:
             fetched_entity = self.repo.get_by_id(entity.id)
             assert fetched_entity == entity
 
+    def test_create_many_with_same_id_does_nothing_on_conflict(self):
+        # Insert an initial entity
+        self._insert_entity(entity_id=8, value="Original Value")
+
+        entities_to_create = [
+            TestEntityDomain(id=8, value="New Value"),  # Conflict on ID
+            TestEntityDomain(id=9, value="Entity 9"),
+        ]
+
+        self.repo.create_many(entities_to_create, conflict_index=["id"])
+
+        # Verify that the original entity was not modified
+        fetched_entity = self.repo.get_by_id(8)
+        assert fetched_entity.value == "Original Value"
+
+        # Verify that the non-conflicting entity was created
+        fetched_entity_9 = self.repo.get_by_id(9)
+        assert fetched_entity_9 == TestEntityDomain(id=9, value="Entity 9")
+
     def test_update_modifies_entity(self):
         self._insert_entity(entity_id=3, value="Old Value")
 
