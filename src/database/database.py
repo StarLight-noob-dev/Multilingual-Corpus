@@ -18,7 +18,7 @@ from src.database.config import (
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=10,
+    pool_size=16,
     max_overflow=20,
     echo=False
 )
