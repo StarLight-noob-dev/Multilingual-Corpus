@@ -73,6 +73,7 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
                 index_elements=conflict_index
             )
             self.session.execute(stmt)
+            self.session.commit()
         else:
             self.session.execute(
                 stmt,

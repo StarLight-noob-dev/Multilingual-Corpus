@@ -75,3 +75,19 @@ class TestAuthorRepository:
         assert len(res) == 1
         assert res[0]._ol_id == "A1"
         assert res[0].name == "Luz"
+
+    def test_bulk_insert_inserts_authors(self):
+        authors = [
+            AuthorRecord(_ol_id="A1", name="Author One", death_date=1990, _work_count=10),
+            AuthorRecord(_ol_id="A2", name="Author Two", death_date=2000, _work_count=20),
+            AuthorRecord(_ol_id="A3", name="Author Three", death_date=2010, _work_count=30)
+        ]
+
+        self.repo.bulk_insert(authors)
+
+        # Verify they were inserted
+        res = self.repo.get_many_by_ids(["A1", "A2", "A3"])
+        assert isinstance(res, list)
+        assert len(res) == 3
+        ids = {r._ol_id for r in res}
+        assert ids == {"A1", "A2", "A3"}

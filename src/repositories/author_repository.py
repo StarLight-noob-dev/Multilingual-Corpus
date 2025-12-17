@@ -20,5 +20,5 @@ class AuthorRepository(GenericRepository[AuthorRecord, AuthorORM, str]):
     def bulk_insert(self, records: List[AuthorRecord]) -> None:
         self.create_many(
             records,
-            conflict_index=['_ol_id']
+            conflict_index=['ol_id']
         )

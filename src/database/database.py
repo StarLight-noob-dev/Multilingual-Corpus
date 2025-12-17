@@ -33,10 +33,7 @@ SessionLocal = sessionmaker(
 
 def get_db() -> Session:
     db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    return db
 
 
 def init_app_db() -> None:
