@@ -6,3 +6,4 @@ sqlalchemy
 sqlalchemy-utils
 python-dateutil
 filelock
+internetarchive
