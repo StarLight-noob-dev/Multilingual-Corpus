@@ -1,4 +1,4 @@
-from typing import Optional, override
+from typing import Optional, override, Dict, Any
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, Integer, Boolean
 
@@ -24,7 +24,7 @@ class AuthorORM(Base):
     death_date_raw: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_death_date_exact: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
 
-    def to_dict(self):
+    def as_dict(self) -> Dict[str, Any]:
         return {
             "ol_id": self.ol_id,
             "name": self.name,
