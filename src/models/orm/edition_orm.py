@@ -27,7 +27,7 @@ class EditionORM(Base):
     publishing_date: Mapped[int] = mapped_column(Integer)
     is_approximate: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
 
-    # Collections (Stored as JSON for simplicity, or ARRAY if using PostgreSQL)
+    # Collections
     authors: Mapped[List[str]] = mapped_column(ARRAY(String), default=list)
     languages: Mapped[List[str]] = mapped_column(ARRAY(String), default=list)
     isbn_10: Mapped[List[str]] = mapped_column(ARRAY(String), default=list)
