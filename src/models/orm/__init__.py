@@ -1,9 +1,6 @@
-from . import author_orm
-from . import edition_orm
+from .author_orm import AuthorORM
+from .edition_orm import EditionORM
 
-__all__ = [
-    "author_orm",
-    "edition_orm"
-]
+__all__ = [AuthorORM, EditionORM]
 
 print("Initialized ORM models package.")

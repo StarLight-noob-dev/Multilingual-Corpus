@@ -1,49 +1,56 @@
+from typing import Optional, List, Dict, Any, override
+
+from sqlalchemy import String, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Integer
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY
 
 from src.database.base import Base
 
 
 class EditionORM(Base):
     """
-    ORM model for an Edition entity in the database.
-
-    Attributes:
-        _ol_id (str): The Open Library ID of the edition (primary key).
-        _ocaid (str): The Open Content Alliance ID of the edition.
-        title (str): The title of the edition.
-        publishing_date (int): The publishing date of the edition (year).
-        copyright_date (int): The copyright date of the edition (year).
-        authors (list[str]): List of author IDs associated with the edition.
-        languages (list[str]): List of language codes for the edition.
-        isbn_10 (list[str]): List of ISBN-10 codes for the edition.
-        isbn_13 (list[str]): List of ISBN-13 codes for the edition.
-        works (list[str]): List of work IDs associated with the edition.
+    ORM model for an Edition entity.
+    Aligned with EditionRecord dataclass.
     """
     __tablename__ = "editions"
 
-    ol_id: Mapped[str] = mapped_column("ol_id", String, primary_key=True)
-    ocaid: Mapped[str] = mapped_column("ocaid", String, nullable=False)
-    title: Mapped[str] = mapped_column(String)
-    publishing_date: Mapped[int] = mapped_column(Integer)
-    copyright_date: Mapped[int] = mapped_column(Integer)
-    authors: Mapped[list[str]] = mapped_column(JSONB, default=list)
-    languages: Mapped[list[str]] = mapped_column(JSONB, default=list)
-    isbn_10: Mapped[list[str]] = mapped_column(JSONB, default=list)
-    isbn_13: Mapped[list[str]] = mapped_column(JSONB, default=list)
-    works: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    # Identifiers
+    ol_id: Mapped[str] = mapped_column(String, primary_key=True)
+    ocaid: Mapped[str] = mapped_column(String, index=True)
 
-    def to_dict(self):
+    # Title & Metadata
+    title: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    local_path: Mapped[Optional[str]] = mapped_column(String, nullable=True, default=None)
+
+    # Publishing Dates
+    publishing_date_raw: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    publishing_date: Mapped[int] = mapped_column(Integer)
+    is_approximate: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
+
+    # Collections (Stored as JSON for simplicity, or ARRAY if using PostgreSQL)
+    authors: Mapped[List[str]] = mapped_column(ARRAY(String), default=list)
+    languages: Mapped[List[str]] = mapped_column(ARRAY(String), default=list)
+    isbn_10: Mapped[List[str]] = mapped_column(ARRAY(String), default=list)
+    isbn_13: Mapped[List[str]] = mapped_column(ARRAY(String), default=list)
+
+    # Notes: Consider to define Many-to-Many relationships with authors table in future iterations
+    # for more complex queries.
+
+    def as_dict(self) -> Dict[str, Any]:
         return {
             "ol_id": self.ol_id,
             "ocaid": self.ocaid,
             "title": self.title,
-            "publishing_date": self.publishing_date,
-            "copyright_date": self.copyright_date,
             "authors": self.authors,
+            "publishing_date_raw": self.publishing_date_raw,
+            "publishing_date": self.publishing_date,
+            "is_approximate": self.is_approximate,
             "languages": self.languages,
             "isbn_10": self.isbn_10,
             "isbn_13": self.isbn_13,
-            "works": self.works
+            "local_path": self.local_path
         }
+
+    @override
+    def __repr__(self) -> str:
+        return f"EditionORM(ol_id={self.ol_id}, ocaid={self.ocaid}, title={self.title}, path={self.local_path})"
