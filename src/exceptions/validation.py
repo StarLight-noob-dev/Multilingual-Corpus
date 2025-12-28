@@ -10,6 +10,11 @@ class ValidationError(PipelineError):
         super().__init__(message, step_name, payload)
         self.issues = issues or []
 
+    def to_dict(self):
+        base_dict = super().to_dict()
+        base_dict['issues'] = self.issues
+        return base_dict
+
     def __str__(self):
         msg = super().__str__()
         if self.issues:
