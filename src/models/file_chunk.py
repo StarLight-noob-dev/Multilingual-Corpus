@@ -1,4 +1,4 @@
-from src.exception.chunk import InvalidChunkBoundaryError
+from src.exceptions import InvalidChunkBoundaryError
 
 
 class Chunk:
