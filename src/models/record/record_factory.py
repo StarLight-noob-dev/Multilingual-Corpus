@@ -3,11 +3,7 @@ import logging
 from typing import Tuple
 
 from src.exception.record import UnknownRecordTypeError
-from src.models.record.author_record import AuthorRecord
-from src.models.record.edition_record import EditionRecord
-from src.models.record.interface import IRecord
-from src.models.record.transport_record import TransportRecord
-from src.models.record.work_record import WorkRecord
+from src.models.record import IRecord, EditionRecord, AuthorRecord, TransportRecord
 from src.common.year_parsing import extract_year
 
 logger = logging.getLogger(__name__)
@@ -29,9 +25,7 @@ def process_record(t_record: TransportRecord) -> IRecord:
     record_type = t_record.r_type.split('/')[-1]
 
     match record_type:
-        case "work":
-            # Work processing not implemented yet
-            raise NotImplementedError("work record processing not implemented")
+
         case "edition":
             return _process_edition_record(t_record)
         case "author":
@@ -43,10 +37,11 @@ def process_record(t_record: TransportRecord) -> IRecord:
 def _process_edition_record(t_record: TransportRecord) -> EditionRecord:
     data = json.loads(t_record.json_string)
 
-    ol_id = t_record.id.split('/')[-1]
+    ol_id = t_record.ol_id.split('/')[-1]
     ocaid = data.get("ocaid") or ""
     title = data.get("title")
-    publishing_date, _ = extract_year(_get_str(data, "publish_date"), True)
+    publishing_date_raw = _get_str(data, "publish_date")
+    publishing_date, is_approx = extract_year(publishing_date_raw, True)
     copyright_date, _ = extract_year(_get_str(data, "copyright_date", alt_fields=["copyright"]), True)
 
     # Normalize authors: accept list of dicts or list of dicts {'key': '/authors/OL1A'}
@@ -81,35 +76,35 @@ def _process_edition_record(t_record: TransportRecord) -> EditionRecord:
         ol_id,
         ocaid,
         title,
+        publishing_date_raw,
         publishing_date,
-        copyright_date,
+        is_approx,
         authors,
         languages,
         isbn_10,
         isbn_13,
-        works
+        local_path=None
     )
 
 
 def _process_author_record(t_record: TransportRecord) -> AuthorRecord:
     data = json.loads(t_record.json_string)
 
-    ol_id = t_record.id.split('/')[-1]
+    ol_id = t_record.ol_id.split('/')[-1]
     name = _get_str(data, "name")
     birth_date, _ = _parse_year(_get_str(data, "birth_date"))
-    death_date, exact = _parse_year(_get_str(data, "death_date"))
+    death_date_raw = _get_str(data, "death_date")
+    death_date, exact = _parse_year(death_date_raw)
 
     return AuthorRecord(
         ol_id,
         name,
-        birth_date,
+        death_date_raw,
         death_date,
+        birth_date,
         exact
     )
 
-
-def _process_work_record(t_record: TransportRecord) -> WorkRecord:
-    pass
 
 
 def _parse_year(date_str: str) -> Tuple[int, bool]:
