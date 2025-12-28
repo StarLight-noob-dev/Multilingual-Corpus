@@ -1,48 +1,40 @@
 from dataclasses import dataclass, field
-from typing import Dict, Any, override, Tuple
+from typing import Dict, Any, override, Tuple, Optional
 
-from src.models.record.interface import IRecord
+from ..record import IRecord
 
 
 @dataclass
 class AuthorRecord(IRecord):
     """Class representing an author record."""
+
+    ol_id: str
     name: str
+    death_date_raw: Optional[str] = field(default=None)
     death_date: int = field(default=-1)
     birth_date: int = field(default=-1)
     is_death_date_exact: bool = field(default=False)
-    _work_count: int = field(default=0)
-
-    def add_work(self, amount: int = 1):
-        self._work_count += amount
-
-
-    def work(self):
-        return self._work_count
-
 
     @override
     def as_dict(self) -> Dict[str, Any]:
         return {
-            "ol_id": self.id,
+            "ol_id": self.ol_id,
             "name": self.name,
+            "death_date_raw": self.death_date_raw,
             "death_date": self.death_date,
             "is_death_date_exact": self.is_death_date_exact,
-            "work_count": self._work_count
         }
-
 
     @override
     def as_tuple(self) -> Tuple[Any, ...]:
         return (
-            self.id,
+            self.ol_id,
             self.name,
+            self.death_date_raw,
             self.death_date,
             self.is_death_date_exact,
-            self._work_count
         )
 
-
     @override
-    def __str__(self):
-        return f"{self.id} {self.name} {self.death_date} {self.is_death_date_exact}"
+    def __repr__(self):
+        return f"AuthorRecord(ol_id={self.ol_id}, name={self.name}, death_date={self.death_date})"

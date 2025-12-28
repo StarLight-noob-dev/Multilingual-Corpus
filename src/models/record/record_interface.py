@@ -8,13 +8,6 @@ from typing import Dict, Any, Tuple
 class IRecord(ABC):
     """Interface for record types."""
 
-    _ol_id: str  # Open Library Identifier
-
-    @property
-    def id(self) -> str:
-        """Get the Open Library Identifier of the record."""
-        return self._ol_id
-
     def as_json(self) -> str:
         """Convert the record to a JSON string representation."""
         return json.dumps(self.as_dict())
