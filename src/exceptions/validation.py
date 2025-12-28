@@ -13,5 +13,5 @@ class ValidationError(PipelineError):
     def __str__(self):
         msg = super().__str__()
         if self.issues:
-            return f"{msg} | Issues: \n\t[*] {'\n\t[*] '.join(self.issues)}"
+            return f"{msg} | Issues: {', '.join(self.issues)}"
         return msg
