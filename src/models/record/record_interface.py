@@ -1,6 +1,6 @@
 import json
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from abc import ABC
+from dataclasses import dataclass, asdict, astuple
 from typing import Dict, Any, Tuple
 
 
@@ -12,7 +12,6 @@ class IRecord(ABC):
         """Convert the record to a JSON string representation."""
         return json.dumps(self.as_dict())
 
-    @abstractmethod
     def as_dict(self) -> Dict[str, Any]:
         """
         Convert the record to a dictionary representation.
@@ -20,9 +19,8 @@ class IRecord(ABC):
         Returns:
             Dict[str, Any]: A dictionary representation of the record.
         """
-        raise NotImplementedError()
+        return asdict(self)
 
-    @abstractmethod
     def as_tuple(self) -> Tuple[Any, ...]:
         """
         Convert the record to a tuple representation.
@@ -30,4 +28,4 @@ class IRecord(ABC):
         Returns:
             Tuple[Any, ...]: A tuple representation of the record.
         """
-        raise NotImplementedError()
+        return astuple(self)
