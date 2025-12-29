@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from src.common.types import T_DOMAIN, T_ORM, T_ID
 from src.mappers import BaseMapper
-from src.repositories.repository_interface import IRepository
+from .repository_interface import IRepository
 
 
 class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
