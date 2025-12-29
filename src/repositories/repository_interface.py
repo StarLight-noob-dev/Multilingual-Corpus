@@ -1,18 +1,12 @@
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import (
-    TypeVar, Generic, Optional, List, Iterable,
-    Callable, TypeAlias
-)
+from typing import Generic, Optional, List, Iterable
 
-T_ORM = TypeVar("T_ORM")  # ORM Model Type
-T_DOMAIN = TypeVar("T_DOMAIN")  # Domain Model Type
-ID = TypeVar("ID")  # Primary key type
+from src.common.types import T_DOMAIN, T_ORM, T_ID
 
-__all__ = ["IRepository", "T_ORM", "T_DOMAIN", "ID"]
 
 @dataclass
-class IRepository(Generic[T_DOMAIN, T_ORM, ID]):
+class IRepository(Generic[T_DOMAIN, T_ORM, T_ID]):
     """Repository interface returning Domain Models."""
 
     # ---------------------- CREATE ----------------------
@@ -28,7 +22,7 @@ class IRepository(Generic[T_DOMAIN, T_ORM, ID]):
 
     # ---------------------- READ ------------------------
     @abstractmethod
-    def get_by_id(self, entity_id: ID) -> Optional[T_DOMAIN]:
+    def get_by_id(self, entity_id: T_ID) -> Optional[T_DOMAIN]:
         """Return one ORM entity or None."""
         ...
 
@@ -39,12 +33,12 @@ class IRepository(Generic[T_DOMAIN, T_ORM, ID]):
 
     # ---------------------- UPDATE ----------------------
     @abstractmethod
-    def update(self, entity_id: ID, **fields) -> Optional[T_DOMAIN]:
+    def update(self, entity_id: T_ID, **fields) -> Optional[T_DOMAIN]:
         """Update an ORM entity and return the updated instance."""
         ...
 
     # ---------------------- DELETE ----------------------
     @abstractmethod
-    def delete(self, entity_id: ID) -> bool:
+    def delete(self, entity_id: T_ID) -> bool:
         """Delete an ORM entity. Returns True if deleted."""
         ...
