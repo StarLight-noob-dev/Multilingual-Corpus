@@ -7,7 +7,20 @@ from src.models.orm import EditionORM, AuthorORM
 
 
 class BaseMapper(Generic[T_DOMAIN, T_ORM]):
-    """Generic base mapper for converting between domain records and ORM entities."""
+    """
+    Generic base mapper for converting between domain records and ORM entities.
+
+    It uses dataclass field introspection to dynamically map fields between the two types.
+    This means that T_DOMAIN should be a dataclass.
+
+    Attributes:
+        DOMAIN_CLASS (Type[T_DOMAIN]): The domain record class.
+        ORM_CLASS (Type[T_ORM]): The ORM entity class.
+
+    Methods:
+        to_domain(orm: T_ORM) -> T_DOMAIN: Converts an ORM entity to a domain record.
+        to_orm(domain: T_DOMAIN) -> T_ORM: Converts a domain record to an ORM entity.
+    """
 
     DOMAIN_CLASS: Type[T_DOMAIN]
     ORM_CLASS: Type[T_ORM]
