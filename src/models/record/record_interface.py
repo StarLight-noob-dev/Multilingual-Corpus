@@ -4,7 +4,6 @@ from dataclasses import dataclass, asdict, astuple
 from typing import Dict, Any, Tuple
 
 
-@dataclass
 class IRecord(ABC):
     """Interface for record types."""
 

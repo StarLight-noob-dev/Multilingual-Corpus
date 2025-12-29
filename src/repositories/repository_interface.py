@@ -1,12 +1,11 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Generic, Optional, List, Iterable
 
 from src.common.types import T_DOMAIN, T_ORM, T_ID
 
 
-@dataclass
-class IRepository(Generic[T_DOMAIN, T_ORM, T_ID]):
+class IRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
     """Repository interface returning Domain Models."""
 
     # ---------------------- CREATE ----------------------
