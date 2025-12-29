@@ -1,10 +1,11 @@
 from typing import Optional, List, Dict, Any, override
 
-from sqlalchemy import String, Integer, Boolean
+from sqlalchemy import String, Integer, Boolean, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import ARRAY
 
 from src.database.base import Base
+from src.models.record import RecordStatus
 
 
 class EditionORM(Base):
@@ -21,6 +22,9 @@ class EditionORM(Base):
     # Title & Metadata
     title: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     local_path: Mapped[Optional[str]] = mapped_column(String, nullable=True, default=None)
+    status: Mapped[RecordStatus] = mapped_column(SQLEnum(RecordStatus), default=RecordStatus.PENDING)
+    error: Mapped[Optional[str]] = mapped_column(String, nullable=True, default=None)
+    retries: Mapped[int] = mapped_column(Integer, server_default="0", default=0)
 
     # Publishing Dates
     publishing_date_raw: Mapped[Optional[str]] = mapped_column(String, nullable=True)
