@@ -1,2 +1,7 @@
-from .author_mapper import AuthorMapper
-from .edition_mapper import EditionMapper
+from .base_mapper import BaseMapper, AuthorMapper, EditionMapper
+
+__all__ = [
+    "BaseMapper",
+    "AuthorMapper",
+    "EditionMapper"
+]
