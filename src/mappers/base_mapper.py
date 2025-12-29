@@ -33,7 +33,7 @@ class BaseMapper(Generic[T_DOMAIN, T_ORM]):
     def to_orm(cls, domain: T_DOMAIN) -> T_ORM:
         if domain is None:
             return None
-        data = domain.as_dict() if hasattr(domain, 'as_dict') else asdict(domain)
+        data = domain.to_dict() if hasattr(domain, 'to_dict') else asdict(domain)
         return cls.ORM_CLASS(**data)
 
 

@@ -1,8 +1,8 @@
-from typing import Optional, List, Dict, Any, override
+from typing import Optional, List, override
 
 from sqlalchemy import String, Integer, Boolean, Enum as SQLEnum
-from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base import Base
 from src.models.record import RecordStatus
@@ -39,21 +39,6 @@ class EditionORM(Base):
 
     # Notes: Consider to define Many-to-Many relationships with authors table in future iterations
     # for more complex queries.
-
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            "ol_id": self.ol_id,
-            "ocaid": self.ocaid,
-            "title": self.title,
-            "authors": self.authors,
-            "publishing_date_raw": self.publishing_date_raw,
-            "publishing_date": self.publishing_date,
-            "is_approximate": self.is_approximate,
-            "languages": self.languages,
-            "isbn_10": self.isbn_10,
-            "isbn_13": self.isbn_13,
-            "local_path": self.local_path
-        }
 
     @override
     def __repr__(self) -> str:

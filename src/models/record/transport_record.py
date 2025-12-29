@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Dict, Any, override, Tuple
 
 from src.models.record import IRecord
 
@@ -17,14 +16,3 @@ class TransportRecord(IRecord):
 
     def get_type(self) -> str:
         return self.r_type.split('/')[-1]
-
-    @override
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            "ol_id": self.ol_id,
-            "json_string": self.json_string
-        }
-
-    @override
-    def as_tuple(self) -> Tuple[Any, ...]:
-        return (self.ol_id, self.json_string)
