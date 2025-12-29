@@ -1,5 +1,6 @@
 from src.models.results.types import SimpleResult, Ok, Err
 
+@DeprecationWarning
 class Test_Result_Funcionality:
 
     def create_result(self, should_be_ok: bool, message: str) -> SimpleResult[str, str]:

@@ -7,7 +7,7 @@ from typing import TypeAlias, TypeVar, Generic
 TOK = TypeVar("TOK")
 TERR = TypeVar("TERR")
 
-
+@DeprecationWarning
 class Ok(Generic[TOK]):
     _value: TOK
 
@@ -20,7 +20,7 @@ class Ok(Generic[TOK]):
     def ok_value(self) -> TOK:
         return self._value
 
-
+@DeprecationWarning
 class Err(Generic[TERR]):
     _err: TERR
 

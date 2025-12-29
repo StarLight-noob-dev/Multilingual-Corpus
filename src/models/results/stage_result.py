@@ -5,7 +5,7 @@ from src.models.results.types import Ok, Err
 T = TypeVar("T")
 E = TypeVar("E")
 
-
+@DeprecationWarning
 class StageResult(Generic[T, E]):
 
     def __init__(self, stage_name: str, details: str, *, has_failed: bool = False):
