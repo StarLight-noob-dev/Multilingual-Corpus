@@ -1,4 +1,4 @@
-from .base import (PipelineStep,
+from .steps_interface import (PipelineStep,
                    BaseFilter,
                    BaseTransformer,
                    BaseAction,

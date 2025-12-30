@@ -15,34 +15,6 @@ class PipelineStep(ABC):
         """Execute the pipeline step with the given data."""
         raise NotImplementedError()
 
-    @classmethod
-    def _get_str(cls, data: dict, field: str, alt_fields=None) -> str:
-        """
-        Helper to get a string field content with optional alternative fields or fallback empty string
-        """
-        if alt_fields is None:
-            alt_fields = []
-        val = data.get(field)
-        if isinstance(val, str):
-            return val
-        for af in alt_fields:
-            v2 = data.get(af)
-            if isinstance(v2, str):
-                return v2
-        return ""
-
-    @classmethod
-    def _get_list(cls, data: dict, field: str) -> list:
-        """
-        Helper to get a list field, normalizing single values into a list
-        """
-        val = data.get(field)
-        if val is None:
-            return []
-        if isinstance(val, list):
-            return val
-        return [val]
-
 
 class BaseFilter(PipelineStep):
     """Abstract base class for filter steps in the pipeline."""
