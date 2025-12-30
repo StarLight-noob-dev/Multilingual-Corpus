@@ -6,7 +6,7 @@ from src.models.results.stage_result import StageResult
 from src.pipeline.context.context import PipelineContext
 from src.pipeline.stage.interface import StageInterface
 
-
+@DeprecationWarning
 class CopyrightValidator(StageInterface):
 
     def initialize(self, stage_id: str, ctx: PipelineContext, **kwargs) -> Dict[str, Any]:

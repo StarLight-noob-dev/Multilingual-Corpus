@@ -13,6 +13,7 @@ logger = get_logger(
     handler_level=logging.DEBUG,
 )
 
+@DeprecationWarning
 class EditionFieldValidation(StageInterface):
     """
     Performs basic validation on incoming EditionRecords to ensure they have necessary fields populated for further

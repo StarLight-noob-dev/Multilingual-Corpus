@@ -17,7 +17,7 @@ LOG_SUBDIR = "logs/report/"
 
 
 logger = get_logger(name="CountingStage")
-
+@DeprecationWarning
 class CountingStage(StageInterface):
     """
     A pipeline stage that counts processed records and aggregates counts across multiple threads/processes

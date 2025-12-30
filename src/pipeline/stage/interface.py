@@ -23,7 +23,7 @@ def _get_lock_for_path(path: str) -> threading.Lock:
             _file_locks[path] = lock
         return lock
 
-
+@DeprecationWarning
 class StageInterface(ABC):
 
     def __init__(self, stage_id: str = "", stage_name: str = ""):

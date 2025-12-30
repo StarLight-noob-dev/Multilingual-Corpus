@@ -5,7 +5,7 @@ from src.models.results.stage_result import StageResult
 from src.pipeline.context.context import LanguageContext
 from src.pipeline.stage.interface import StageInterface
 
-
+@DeprecationWarning
 class EditionLanguageValidationStage(StageInterface):
     @override
     def initialize(self, stage_id: str, ctx: LanguageContext, **kwargs) -> Dict[str, Any]:
