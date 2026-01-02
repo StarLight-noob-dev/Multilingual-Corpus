@@ -38,6 +38,7 @@ class AnyLanguageFilter(BaseFilter):
     Args:
         dont_care (bool): If True, the filter will pass all records regardless if they contain a language.
     """
+
     def __init__(self, dont_care: bool = False):
         self.dont_care = dont_care
 
