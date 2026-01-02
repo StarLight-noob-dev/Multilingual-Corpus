@@ -66,7 +66,7 @@ class BaseAction(PipelineStep):
 
 
 class BaseAggregator(PipelineStep):
-    """Abstract base class for aggregator steps in the pipeline."""
+    """Abstract base class for thread safe aggregator steps in the pipeline."""
     def __init__(self):
         self._lock = threading.Lock()
         self.result = {}
@@ -83,4 +83,4 @@ class BaseAggregator(PipelineStep):
             return data
         except Exception as e:
             logger.error(f"Aggregator {self.__class__.__name__} failed: \n\t[*] Data: {data} \n\t[*] Error: {e}")
-            return None
+            return data
