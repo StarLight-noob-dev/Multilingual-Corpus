@@ -1,5 +1,4 @@
 from abc import abstractmethod, ABC
-from dataclasses import dataclass
 from typing import Generic, Optional, List, Iterable
 
 from src.common.types import T_DOMAIN, T_ORM, T_ID
