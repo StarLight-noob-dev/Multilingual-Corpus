@@ -103,6 +103,8 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         """
         if not entity_ids:
             return []
+        if len(entity_ids) == 0:
+            return []
         pk_colum = getattr(self.model, self.pk_name)
         stmt = select(self.model).where(pk_colum.in_(entity_ids))
         orm_entities: List[T_ORM] = list(self.session.scalars(stmt).all())
