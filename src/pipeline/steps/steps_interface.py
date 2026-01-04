@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 
-logger = logging.getLogger(__name__) # TODO configure logger properly
+logger = logging.getLogger(__name__)
 
 
 class PipelineStep(ABC):
@@ -65,8 +65,12 @@ class BaseAction(PipelineStep):
             return None
 
 
-class BaseAggregator(PipelineStep):
-    """Abstract base class for thread safe aggregator steps in the pipeline."""
+class ThreadBaseAggregator(PipelineStep):
+    """
+    Abstract base class for thread safe aggregator steps in the pipeline.
+
+    Uses a threading lock to ensure that updates to the aggregation result are thread-safe.
+    """
     def __init__(self):
         self._lock = threading.Lock()
         self.result = {}
@@ -80,6 +84,26 @@ class BaseAggregator(PipelineStep):
         try:
             with self._lock:
                 self.update(data)
+            return data
+        except Exception as e:
+            logger.error(f"Aggregator {self.__class__.__name__} failed: \n\t[*] Data: {data} \n\t[*] Error: {e}")
+            return data
+
+
+class BaseAggregator(PipelineStep):
+    """Abstract base class for aggregator steps in the pipeline."""
+
+    def __init__(self):
+        self.result = {}
+
+    @abstractmethod
+    def update(self, data: Any) -> Any:
+        """Aggregate the input data and return the result."""
+        raise NotImplementedError()
+
+    def execute(self, data: Any) -> Optional[Any]:
+        try:
+            self.update(data)
             return data
         except Exception as e:
             logger.error(f"Aggregator {self.__class__.__name__} failed: \n\t[*] Data: {data} \n\t[*] Error: {e}")
