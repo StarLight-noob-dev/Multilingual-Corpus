@@ -1,10 +1,10 @@
 from typing import Any, override
 
 from src.models.record import EditionRecord
-from src.pipeline.steps import BaseAggregator
+from src.pipeline.steps import ThreadBaseAggregator
 
 
-class CountingAggregator(BaseAggregator):
+class CountingAggregator(ThreadBaseAggregator):
     def __init__(self):
         super().__init__()
         self.count = 0
@@ -17,7 +17,7 @@ class CountingAggregator(BaseAggregator):
         return self.count
 
 
-class LanguageCounterAggregator(BaseAggregator):
+class LanguageCounterAggregator(ThreadBaseAggregator):
     def __init__(self):
         super().__init__()
 

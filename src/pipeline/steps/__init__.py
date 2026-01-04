@@ -1,14 +1,14 @@
 from .steps_interface import (PipelineStep,
-                   BaseFilter,
-                   BaseTransformer,
-                   BaseAction,
-                   BaseAggregator
-                   )
+                              BaseFilter,
+                              BaseTransformer,
+                              BaseAction,
+                              ThreadBaseAggregator
+                              )
 
 __all__ = [
     "PipelineStep",
     "BaseFilter",
     "BaseTransformer",
     "BaseAction",
-    "BaseAggregator"
+    "ThreadBaseAggregator"
 ]
