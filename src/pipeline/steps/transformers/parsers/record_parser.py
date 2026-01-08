@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List
+from typing import List, Any
 
 from src.pipeline.steps import BaseTransformer
 from src.models.record import TransportRecord
@@ -9,7 +9,7 @@ class RecordParser(BaseTransformer):
     """Extended BaseTransformer with helper methods for record parsing"""
 
     @abstractmethod
-    def transform(self, t_record: TransportRecord):
+    def transform(self, t_record: TransportRecord) -> Any:
         pass
 
     def _get_str(self, data: dict, field: str, alt_fields=None) -> str:

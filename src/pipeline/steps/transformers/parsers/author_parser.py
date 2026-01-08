@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from src.models.record import TransportRecord, AuthorRecord
 from src.exceptions.record import RecordConversionError
@@ -8,9 +9,9 @@ from .record_parser import RecordParser
 
 class AuthorRecordParser(RecordParser):
     """Transformer to parse AuthorRecord from TransportRecord"""
-    def transform(self, t_record: TransportRecord) -> AuthorRecord:
+    def transform(self, t_record: TransportRecord) -> Optional[AuthorRecord]:
         if t_record is None:
-            raise ValueError("TransportRecord cannot be None")
+            return None
 
         if t_record.get_type() != "author":
             raise RecordConversionError(f"Expected 'author', got '{t_record.get_type()}'")

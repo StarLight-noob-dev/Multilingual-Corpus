@@ -76,7 +76,11 @@ class DumpReader:
                     break
                 parts = line.strip().split("\t")
                 if len(parts) == 5:
-                    yield TransportRecord(r_type=parts[0], ol_id=parts[1], json_string=parts[4])
+                    yield TransportRecord(
+                        r_type=parts[0].strip(),
+                        ol_id=parts[1].strip(),
+                        json_string=parts[4].strip()
+                    )
                 else:
                     logger.warning(f"Malformed line at offset {f.tell()}")
 

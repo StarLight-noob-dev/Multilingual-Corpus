@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from src.common.year_parsing import extract_year
 from src.exceptions.record import RecordConversionError
@@ -8,9 +9,9 @@ from .record_parser import RecordParser
 
 class EditionRecordParser(RecordParser):
     """Transformer to parse EditionRecord from TransportRecord"""
-    def transform(self, t_record: TransportRecord) -> EditionRecord:
+    def transform(self, t_record: TransportRecord) -> Optional[EditionRecord]:
         if t_record is None:
-            raise ValueError("TransportRecord cannot be None")
+            return None
 
         if t_record.get_type() != "edition":
             raise RecordConversionError(f"Expected 'edition', got '{t_record.get_type()}'")
