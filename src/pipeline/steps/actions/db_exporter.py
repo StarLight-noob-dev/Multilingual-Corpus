@@ -25,11 +25,12 @@ class BufferedPostgresExporter(BaseAction):
         self._lock = threading.Lock()
 
     @override
-    def perform(self, data: T_DOMAIN) -> None:
+    def perform(self, data: T_DOMAIN) -> T_DOMAIN:
         with self._lock:
             self.buffer.append(data)
             if len(self.buffer) >= self.buffer_size:
                 self.flush()
+        return data
 
     def flush(self) -> None:
         """Flush the buffer and insert all buffered records into the database."""

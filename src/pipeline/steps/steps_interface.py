@@ -52,7 +52,7 @@ class BaseAction(PipelineStep):
     """Abstract base class for action steps in the pipeline."""
 
     @abstractmethod
-    def perform(self, data: Any) -> None:
+    def perform(self, data: Any) -> Any:
         """Perform an action using the input data."""
         raise NotImplementedError()
 
