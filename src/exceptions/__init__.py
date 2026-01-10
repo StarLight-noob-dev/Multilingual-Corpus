@@ -4,7 +4,10 @@ from .record import (RecordError,
                     RecordConversionError)
 from .validation import ValidationError
 from .chunk import InvalidChunkBoundaryError
-from .pipeline import EmptyPipelineError
+from .pipeline import (EmptyPipelineError,
+                       StepExecutionError,
+                       InvalidStepError,
+                       TestingLimitReached)
 
 __all__ = [
     "PipelineError",
@@ -14,4 +17,7 @@ __all__ = [
     "ValidationError",
     "InvalidChunkBoundaryError",
     "EmptyPipelineError",
+    "StepExecutionError",
+    "InvalidStepError",
+    "TestingLimitReached"
 ]
