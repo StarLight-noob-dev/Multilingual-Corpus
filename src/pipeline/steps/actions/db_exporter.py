@@ -9,6 +9,9 @@ from src.repositories import BaseSqlRepository
 class BufferedPostgresExporter(BaseAction):
     """
     Export data to a PostgreSQL database using buffered inserts for efficiency.
+
+    Note: self.flush() should be called to ensure all buffered data is written to the database before
+    the program exits or when you want to ensure all data is saved.
     """
 
     def __init__(self, repository: BaseSqlRepository[T_DOMAIN, T_ORM, T_ID], buffer_size: int = 1000):
