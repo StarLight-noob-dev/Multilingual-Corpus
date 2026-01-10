@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, override
 
 from src.models.record import TransportRecord, AuthorRecord
 from src.exceptions.record import RecordConversionError
@@ -9,6 +9,7 @@ from .record_parser import RecordParser
 
 class AuthorRecordParser(RecordParser):
     """Transformer to parse AuthorRecord from TransportRecord"""
+    @override
     def transform(self, t_record: TransportRecord) -> Optional[AuthorRecord]:
         if t_record is None:
             return None

@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, override
 
 from src.common.year_parsing import extract_year
 from src.exceptions.record import RecordConversionError
@@ -9,6 +9,7 @@ from .record_parser import RecordParser
 
 class EditionRecordParser(RecordParser):
     """Transformer to parse EditionRecord from TransportRecord"""
+    @override
     def transform(self, t_record: TransportRecord) -> Optional[EditionRecord]:
         if t_record is None:
             return None

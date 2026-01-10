@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Callable
+from typing import Callable, override
 
 from src.models.record import EditionRecord
 from src.pipeline.steps import BaseFilter
@@ -37,6 +37,7 @@ class EditionCopyrightFilter(BaseFilter):
         self.repository = repository
         self.current_year = date.today().year
 
+    @override
     def filter(self, data: EditionRecord) -> bool:
         """
         Filter the data based on its copyright status.
@@ -110,6 +111,7 @@ class EditionAnyCopyrightFilter(BaseFilter):
             )
             sleep(3)
 
+    @override
     def filter(self, data: EditionRecord) -> bool:
         """
         Include all records regardless of copyright status.
