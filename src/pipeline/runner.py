@@ -1,7 +1,10 @@
+import logging
 from typing import List, Any
 
-from src.exceptions import EmptyPipelineError
+from src.exceptions import EmptyPipelineError, InvalidStepError, TestingLimitReached
 from src.pipeline.steps import PipelineStep
+
+logger = logging.getLogger(__name__)
 
 
 class SequentialOrchestrator:
@@ -15,14 +18,42 @@ class SequentialOrchestrator:
         Raises:
             EmptyPipelineError: If the steps list is None or empty.
         """
-        if steps is None or len(steps) == 0:
+        if steps is None:
             raise EmptyPipelineError(steps)
+
+        if not isinstance(steps, list):
+            steps = list(steps)
+
+        if len(steps) == 0:
+            raise EmptyPipelineError(steps)
+
+        for step in steps:
+            if not isinstance(step, PipelineStep):
+                raise InvalidStepError(
+                    step_name="SequentialOrchestrator Initialization",
+                    step=step.__class__,
+                    payload={"expected_type": PipelineStep, "actual_type": type(step)}
+                )
+
         self.steps = steps
+        self._should_stop = False
 
     def run(self, record: Any) -> Any:
+        if self._should_stop:
+            return None
+
         current = record
-        for step in self.steps:
-            current = step.execute(current)
-            if current is None:
-                return None # Record was filtered out or an error occurred
-        return current
+
+        try:
+            for step in self.steps:
+                current = step.execute(current)
+                if current is None:
+                    return None # Record was filtered out or an error occurred
+            return current
+        except TestingLimitReached as e:
+            logger.info(str(e))
+            self._should_stop = True
+            return None
+        except Exception as e:
+            logger.error(f"Pipeline execution failed: {e}")
+            return None
