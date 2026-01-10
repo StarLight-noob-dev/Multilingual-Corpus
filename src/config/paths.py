@@ -19,9 +19,13 @@ class DataPaths:
     EDITION_DUMP = DATA_RAW_DIR / 'ol_dump_editions_latest.txt'
     AUTHOR_DUMP = DATA_RAW_DIR / 'ol_dump_authors_latest.txt'
 
-    BIG_EDITION_SAMPLE = DATA_SAMPLES_DIR / 'big_editions.txt'
-    MEDIUM_EDITION_SAMPLE = DATA_SAMPLES_DIR / 'medium_editions.txt'
-    SMALL_EDITION_SAMPLE = DATA_SAMPLES_DIR / 'small_editions.txt'
+    BIG_EDITION_SAMPLE = DATA_SAMPLES_DIR / 'big_editions_sample.txt'
+    MEDIUM_EDITION_SAMPLE = DATA_SAMPLES_DIR / 'medium_editions_sample.txt'
+    SMALL_EDITION_SAMPLE = DATA_SAMPLES_DIR / 'small_editions_sample.txt'
+
+    BIG_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'big_authors_sample.txt'
+    MEDIUM_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'medium_authors_sample.txt'
+    SMALL_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'small_authors_sample.txt'
 
     BIG_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'big_authors.txt'
     MEDIUM_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'medium_authors.txt'
