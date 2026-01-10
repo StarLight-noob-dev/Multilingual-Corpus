@@ -22,6 +22,8 @@ class EditionCopyrightFilter(BaseFilter):
         """
         Initialize the CopyrightFilter.
 
+        If no copyright_function is provided, the default logic based on German law (§ 64 UrhG) is used.
+
         Args:
             copyright_function (Callable[[EditionRecord, AuthorRepository], bool): A function that determines the
                 copyright status of a record, returning True if the record has copyright and False otherwise.
