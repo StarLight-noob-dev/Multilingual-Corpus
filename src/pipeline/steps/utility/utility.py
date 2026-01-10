@@ -4,7 +4,7 @@ from typing import Any, override
 from src.pipeline.steps import PipelineStep
 
 
-class EarlyPipelineStep(PipelineStep):
+class EarlyPipelineStop(PipelineStep):
     def __init__(self, limit: int):
         """
         A pipeline step that raises an exception when a certain number of non-None data items have been processed.
@@ -25,7 +25,7 @@ class EarlyPipelineStep(PipelineStep):
             if self._counter > self.limit:
                 from src.exceptions import TestingLimitReached
                 raise TestingLimitReached(
-                    step_name="EarlyPipelineStep",
+                    step_name="EarlyPipelineStop",
                     limit=self.limit
                 )
         return data
