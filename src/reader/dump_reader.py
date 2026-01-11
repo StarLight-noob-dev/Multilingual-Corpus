@@ -136,7 +136,7 @@ class DumpReader:
         Args:
             size (str): Size of the sample ('small', 'medium', 'big').
             batch_size (int, optional): Size of each batch. If None or less than 2,
-            returns an iterator over individual TransportRecord.
+                returns an iterator over individual TransportRecord.
 
         Yields:
             Iterable[Any]: An iterator or batch generator of TransportRecords.
