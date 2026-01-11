@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from src.config.paths import DataPaths
 from src.database.database import SessionLocal
+from src.logger import clear_logs, setup_logging
 from src.pipeline.steps.filters.lang_filters import LanguageFilter, AnyLanguageFilter
 from src.reader.dump_reader import DumpReader
 from src.pipeline.runner import SequentialOrchestrator
@@ -19,16 +20,19 @@ from src.repositories import AuthorRepository
 
 MAX_WORKERS = 4
 
+
 def demo() -> None:
+    clear_logs()
+    setup_logging()
 
     pipeline = SequentialOrchestrator(
         steps=[
             (n_entries := CountingAggregator()),
             EditionRecordParser(),
             EditionsNecessaryFieldsFilter(),
-            AnyLanguageFilter(), # Small demo dataset, so we don't filter by language
+            AnyLanguageFilter(),  # Small demo dataset, so we don't filter by language
             #EditionCopyrightFilter(repository=AuthorRepository(SessionLocal())), # Requires a fully parsed author DB
-            EditionAnyCopyrightFilter(), # Just for demo purposes
+            EditionAnyCopyrightFilter(),  # Just for demo purposes
             IADownloadManager(
                 formats=['DjVuTXT'],
                 extensions=['.txt'],
