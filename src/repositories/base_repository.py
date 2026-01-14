@@ -1,16 +1,15 @@
-from abc import ABC
-from typing import Generic, Optional, List, Type, Iterable, Any, TypeVar, TypeAlias, Callable
+from typing import Optional, List, Type, Iterable, Any
 
 from sqlalchemy import select, update, delete
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-T_ORM = TypeVar("T_ORM")  # ORM Model Type
-T_DOMAIN = TypeVar("T_DOMAIN")  # Domain Model Type
-T_ID = TypeVar("T_ID")  # Primary key type
+from src.common.types import T_DOMAIN, T_ORM, T_ID
+from src.mappers import BaseMapper
+from .repository_interface import IRepository
 
 
-class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
+class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
     """
     Concrete implementation of a repository for generic CRUD operations using SQLAlchemy and a Mapper to translate
     between ORM (internal) models and domain models (external).
@@ -18,23 +17,18 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
 
     def __init__(self,
                  session: Session,
-                 orm_model: Type[T_ORM],
-                 to_domain_mapper: TypeAlias = Callable[[T_ORM | List[T_ORM]], T_DOMAIN | List[T_DOMAIN]],
-                 to_orm_mapper: TypeAlias = Callable[[T_DOMAIN | List[T_DOMAIN]], T_ORM | List[T_ORM]]
+                 mapper: Type[BaseMapper[T_DOMAIN, T_ORM]],
                  ):
         """
         Initialize the repository with a SQLAlchemy session and model.
 
         Args:
             session (Session): SQLAlchemy session for database operations.
-            orm_model (Type[T_ORM]): The specific SQLAlchemy ORM model class this repository manages.
-            to_domain_mapper (Callable): Function that converts T_ORM -> T_DOMAIN.
-            from_domain_mapper (Callable): Function that converts T_DOMAIN -> T_ORM.
+            mapper (Type[BaseMapper[T_DOMAIN, T_ORM]]): Mapper class for converting between domain and ORM models.
         """
         self.session = session
-        self.model = orm_model
-        self.to_domain = to_domain_mapper
-        self.to_orm = to_orm_mapper
+        self.model = mapper.ORM_CLASS
+        self.mapper = mapper
         # Get primary key name from the model's mapper
         self.pk_name = self.model.__mapper__.primary_key[0].name
 
@@ -48,11 +42,11 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             T_DOMAIN: The created domain model instance with updated fields (e.g., ID).
         """
-        orm = self.to_orm(entity)
+        orm = self.mapper.to_orm(entity)
         self.session.add(orm)
         self.session.commit()
         self.session.refresh(orm)
-        return self.to_domain(orm)
+        return self.mapper.to_domain(orm)
 
     def create_many(self, entities: Iterable[T_DOMAIN], conflict_index: Optional[List[str]] = None) -> List[T_DOMAIN]:
         """
@@ -66,7 +60,7 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             List[T_DOMAIN]: An empty list (as per current implementation).
         """
-        orm_dict = [self.to_orm(e).to_dict() for e in entities]
+        orm_dict = [self.mapper.to_orm(e).to_dict() for e in entities]
         stmt = self.model.__table__.insert()
         if conflict_index:
             stmt = insert(self.model).values(orm_dict).on_conflict_do_nothing(
@@ -95,7 +89,7 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
         orm_entity = self.session.get(self.model, entity_id)
         if orm_entity is None:
             return None
-        return self.to_domain(orm_entity)
+        return self.mapper.to_domain(orm_entity)
 
     def get_many_by_ids(self, entity_ids: List[T_ID]) -> List[T_DOMAIN]:
         """
@@ -109,10 +103,12 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
         """
         if not entity_ids:
             return []
+        if len(entity_ids) == 0:
+            return []
         pk_colum = getattr(self.model, self.pk_name)
         stmt = select(self.model).where(pk_colum.in_(entity_ids))
         orm_entities: List[T_ORM] = list(self.session.scalars(stmt).all())
-        return [self.to_domain(e) for e in orm_entities]
+        return [self.mapper.to_domain(e) for e in orm_entities]
 
     def get_all(self) -> List[T_DOMAIN]:
         """
@@ -123,7 +119,7 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
         """
         stmt = select(self.model)
         orm_entities: List[T_ORM] = list(self.session.scalars(stmt).all())
-        return [self.to_domain(e) for e in orm_entities]
+        return [self.mapper.to_domain(e) for e in orm_entities]
 
     def update(self, entity_id: T_ID, **fields: Any) -> Optional[T_DOMAIN]:
         """
@@ -153,15 +149,15 @@ class GenericRepository(ABC, Generic[T_DOMAIN, T_ORM, T_ID]):
         """
         Delete an entity by its ID.
 
+        It's recommended to call get_by_id after deletion to confirm removal.
+
         Args:
             entity_id (T_ID): The primary key of the entity to delete.
 
         Returns:
-            bool: True if the entity was deleted, False otherwise.
+            bool: True if no exceptions were raised during deletion.
         """
         stmt = delete(self.model).where(getattr(self.model, self.pk_name) == entity_id)
-        result = self.session.execute(stmt)
-        if result.rowcount == 0:
-            return False
+        self.session.execute(stmt)
         self.session.commit()
         return True

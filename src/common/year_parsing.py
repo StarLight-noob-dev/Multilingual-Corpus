@@ -111,8 +111,3 @@ def extract_year(date_str: str, no_aprox: bool = False, *, adjustment: int = 5) 
         logger.debug("Date parsing failed for '%s':", date_str)
 
     return -1, False
-
-__all__ = [
-    KNOWN_NON_DATES,
-    "extract_year"
-]
