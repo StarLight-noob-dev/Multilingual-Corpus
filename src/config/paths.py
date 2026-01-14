@@ -26,8 +26,3 @@ class DataPaths:
     BIG_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'big_authors_sample.txt'
     MEDIUM_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'medium_authors_sample.txt'
     SMALL_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'small_authors_sample.txt'
-
-    BIG_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'big_authors.txt'
-    MEDIUM_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'medium_authors.txt'
-    SMALL_AUTHOR_SAMPLE = DATA_SAMPLES_DIR / 'small_authors.txt'
-
