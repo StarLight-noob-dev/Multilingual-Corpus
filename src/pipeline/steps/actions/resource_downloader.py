@@ -172,9 +172,6 @@ class IADownloadManager(BaseAction):
                     full_path = item_dir / filename
                     IADownloadManager._unpack_gzip(full_path)
 
-        if verbose:
-            logger.info(f"Downloaded item to {item_dir}. Waiting for {delay} seconds to avoid throttling.")
-
         time.sleep(delay)
         return item_dir
 
