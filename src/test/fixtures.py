@@ -1,7 +1,7 @@
 from typing import Iterator
 
 import pytest
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from src.database.base import Base
 from src.database.database import get_test_engine, drop_test_db
@@ -28,7 +28,7 @@ def engine():
 
 
 @pytest.fixture(scope="function")
-def session(engine) -> Iterator[Session]:
+def session(engine) -> Iterator[sessionmaker]:
     """
     Provides a transactional session, ensuring each test is isolated.
     Changes are rolled back after the test completes.
@@ -38,11 +38,10 @@ def session(engine) -> Iterator[Session]:
     transaction = connection.begin()
 
     # Bind the session to the connection
-    session = Session(bind=connection)
+    session = sessionmaker(bind=connection)
 
     yield session  # Execution passes to the test function
 
     # TEARDOWN: Rollback the transaction to reset state
-    session.close()
     transaction.rollback()
     connection.close()

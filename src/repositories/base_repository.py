@@ -2,7 +2,7 @@ from typing import Optional, List, Type, Iterable, Any
 
 from sqlalchemy import select, update, delete
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from src.common.types import T_DOMAIN, T_ORM, T_ID
 from src.mappers import BaseMapper
@@ -16,7 +16,7 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
     """
 
     def __init__(self,
-                 session: Session,
+                 session_factory: sessionmaker ,
                  mapper: Type[BaseMapper[T_DOMAIN, T_ORM]],
                  ):
         """
@@ -26,7 +26,7 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
             session (Session): SQLAlchemy session for database operations.
             mapper (Type[BaseMapper[T_DOMAIN, T_ORM]]): Mapper class for converting between domain and ORM models.
         """
-        self.session = session
+        self.session_factory = session_factory
         self.model = mapper.ORM_CLASS
         self.mapper = mapper
         # Get primary key name from the model's mapper
@@ -42,11 +42,12 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             T_DOMAIN: The created domain model instance with updated fields (e.g., ID).
         """
-        orm = self.mapper.to_orm(entity)
-        self.session.add(orm)
-        self.session.commit()
-        self.session.refresh(orm)
-        return self.mapper.to_domain(orm)
+        with self.session_factory() as session:
+            orm = self.mapper.to_orm(entity)
+            session.add(orm)
+            session.commit()
+            session.refresh(orm)
+            return self.mapper.to_domain(orm)
 
     def create_many(self, entities: Iterable[T_DOMAIN], conflict_index: Optional[List[str]] = None) -> List[T_DOMAIN]:
         """
@@ -60,21 +61,22 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             List[T_DOMAIN]: An empty list (as per current implementation).
         """
-        orm_dict = [self.mapper.to_orm(e).to_dict() for e in entities]
-        stmt = self.model.__table__.insert()
-        if conflict_index:
-            stmt = insert(self.model).values(orm_dict).on_conflict_do_nothing(
-                index_elements=conflict_index
-            )
-            self.session.execute(stmt)
-            self.session.commit()
-        else:
-            self.session.execute(
-                stmt,
-                orm_dict
-            )
-            self.session.commit()
-        return []
+        with self.session_factory() as session:
+            orm_dict = [self.mapper.to_orm(e).to_dict() for e in entities]
+            stmt = self.model.__table__.insert()
+            if conflict_index:
+                stmt = insert(self.model).values(orm_dict).on_conflict_do_nothing(
+                    index_elements=conflict_index
+                )
+                session.execute(stmt)
+                session.commit()
+            else:
+                session.execute(
+                    stmt,
+                    orm_dict
+                )
+                session.commit()
+            return []
 
     def get_by_id(self, entity_id: T_ID) -> Optional[T_DOMAIN]:
         """
@@ -86,10 +88,11 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             Optional[T_DOMAIN]: The domain model instance if found, else None.
         """
-        orm_entity = self.session.get(self.model, entity_id)
-        if orm_entity is None:
-            return None
-        return self.mapper.to_domain(orm_entity)
+        with self.session_factory() as session:
+            orm_entity = session.get(self.model, entity_id)
+            if orm_entity is None:
+                return None
+            return self.mapper.to_domain(orm_entity)
 
     def get_many_by_ids(self, entity_ids: List[T_ID]) -> List[T_DOMAIN]:
         """
@@ -105,10 +108,11 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
             return []
         if len(entity_ids) == 0:
             return []
-        pk_colum = getattr(self.model, self.pk_name)
-        stmt = select(self.model).where(pk_colum.in_(entity_ids))
-        orm_entities: List[T_ORM] = list(self.session.scalars(stmt).all())
-        return [self.mapper.to_domain(e) for e in orm_entities]
+        with self.session_factory() as session:
+            pk_colum = getattr(self.model, self.pk_name)
+            stmt = select(self.model).where(pk_colum.in_(entity_ids))
+            orm_entities: List[T_ORM] = list(session.scalars(stmt).all())
+            return [self.mapper.to_domain(e) for e in orm_entities]
 
     def get_all(self) -> List[T_DOMAIN]:
         """
@@ -117,9 +121,10 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             List[T_DOMAIN]: List of all domain model instances.
         """
-        stmt = select(self.model)
-        orm_entities: List[T_ORM] = list(self.session.scalars(stmt).all())
-        return [self.mapper.to_domain(e) for e in orm_entities]
+        with self.session_factory() as session:
+            stmt = select(self.model)
+            orm_entities: List[T_ORM] = list(session.scalars(stmt).all())
+            return [self.mapper.to_domain(e) for e in orm_entities]
 
     def update(self, entity_id: T_ID, **fields: Any) -> Optional[T_DOMAIN]:
         """
@@ -132,18 +137,19 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             Optional[T_DOMAIN]: The updated domain model instance if found, else None.
         """
-        stmt = (
-            update(self.model)
-            .where(getattr(self.model, self.pk_name) == entity_id)
-            .values(**fields)
-            .execution_options(synchronize_session="fetch")
-        )
-        self.session.execute(stmt)
-        self.session.commit()
-        updated_entity = self.get_by_id(entity_id)
-        if updated_entity is None:
-            return None
-        return updated_entity
+        with self.session_factory() as session:
+            stmt = (
+                update(self.model)
+                .where(getattr(self.model, self.pk_name) == entity_id)
+                .values(**fields)
+                .execution_options(synchronize_session="fetch")
+            )
+            session.execute(stmt)
+            session.commit()
+            updated_entity = self.get_by_id(entity_id)
+            if updated_entity is None:
+                return None
+            return updated_entity
 
     def delete(self, entity_id: T_ID) -> bool:
         """
@@ -157,7 +163,8 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             bool: True if no exceptions were raised during deletion.
         """
-        stmt = delete(self.model).where(getattr(self.model, self.pk_name) == entity_id)
-        self.session.execute(stmt)
-        self.session.commit()
-        return True
+        with self.session_factory() as session:
+            stmt = delete(self.model).where(getattr(self.model, self.pk_name) == entity_id)
+            session.execute(stmt)
+            session.commit()
+            return True

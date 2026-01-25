@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 from sqlalchemy import String, Integer
-from sqlalchemy.orm import Mapped, mapped_column, Session
+from sqlalchemy.orm import Mapped, mapped_column, Session, sessionmaker
 
 from src.database.base import Base
 from src.mappers import BaseMapper
@@ -36,9 +36,9 @@ class TestMapper(BaseMapper[TestEntityDomain, TestEntityORM]):
 
 # --- 2. SETUP: Concrete Test Repository (Test functionality from BaseSqlRepository) ---
 class TestRepo(BaseSqlRepository[TestEntityDomain, TestEntityORM, int]):
-    def __init__(self, session: Session):
+    def __init__(self, session_factory: sessionmaker):
         super().__init__(
-            session=session,
+            session_factory=session_factory,
             mapper=TestMapper
         )
 
@@ -46,20 +46,21 @@ class TestRepo(BaseSqlRepository[TestEntityDomain, TestEntityORM, int]):
 # --- 3. TEST CLASS: Test Suite for Generic Repository Methods ---
 class TestGenericRepositoryMethods:
     repo: TestRepo
-    session: Session
+    session: sessionmaker
 
     @pytest.fixture(autouse=True)
-    def setup_repository(self, session: Session):
+    def setup_repository(self, session: sessionmaker):
         """Initializes the repository and provides access to the transactional session."""
-        self.repo = TestRepo(session=session)
+        self.repo = TestRepo(session_factory=session)
         self.session = session
 
     def _insert_entity(self, entity_id: int, value: str):
         """Helper to insert and commit data for test visibility."""
         entity_orm = TestEntityORM(id=entity_id, value=value)
-        self.session.add(entity_orm)
-        self.session.commit()  # Commit is crucial for visibility in subsequent queries
-        self.session.expunge_all()  # Clear session cache for clean query testing
+        with self.session() as session:
+            session.add(entity_orm)
+            session.commit()  # Commit is crucial for visibility in subsequent queries
+            session.expunge_all()  # Clear session cache for clean query testing
 
     def test_get_by_id_returns_entity(self):
         self._insert_entity(entity_id=1, value="Initial Value")
