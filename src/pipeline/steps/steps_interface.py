@@ -69,7 +69,8 @@ class ThreadBaseAggregator(PipelineStep):
     """
     Abstract base class for thread safe aggregator steps in the pipeline.
 
-    Uses a threading lock to ensure that updates to the aggregation result are thread-safe.
+    Provides a threading lock to ensure that updates to the aggregation result
+    are thread-safe.
     """
     def __init__(self):
         self._lock = threading.Lock()
@@ -82,8 +83,7 @@ class ThreadBaseAggregator(PipelineStep):
 
     def execute(self, data: Any) -> Optional[Any]:
         try:
-            with self._lock:
-                self.update(data)
+            self.update(data)
             return data
         except Exception as e:
             logger.error(f"Aggregator {self.__class__.__name__} failed: \n\t[*] Data: {data} \n\t[*] Error: {e}")
