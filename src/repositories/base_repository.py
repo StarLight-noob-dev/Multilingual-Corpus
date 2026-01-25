@@ -65,7 +65,7 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
             orm_dict = [self.mapper.to_orm(e).to_dict() for e in entities]
             stmt = self.model.__table__.insert()
             if conflict_index:
-                stmt = insert(self.model).values(orm_dict).on_conflict_do_nothing(
+                stmt = insert(self.model).values(orm_dict).on_conflict_do_update(
                     index_elements=conflict_index
                 )
                 session.execute(stmt)
