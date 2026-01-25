@@ -9,3 +9,6 @@ diary
 *.log
 data/samples/huge_editions_test.txt
 data/raw
+data/processed
+data/interim
+data/downloads
