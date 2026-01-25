@@ -1,6 +1,6 @@
 from typing import List
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
 
 from src.mappers import EditionMapper
 from src.models.orm import EditionORM
@@ -9,9 +9,9 @@ from src.repositories import BaseSqlRepository
 
 
 class EditionRepository(BaseSqlRepository[EditionRecord, EditionORM, str]):
-    def __init__(self, session: Session):
+    def __init__(self, session_factory: sessionmaker):
         super().__init__(
-            session=session,
+            session_factory=session_factory,
             mapper=EditionMapper
         )
 
