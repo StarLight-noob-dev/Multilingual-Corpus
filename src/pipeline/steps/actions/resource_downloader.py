@@ -42,8 +42,8 @@ class IADownloadManager(BaseAction):
     AVAILABLE_EXTENSIONS = ['.txt', '.pdf', '.gz', '.xml', '.djvu']
 
     def __init__(self,
-                 formats: List[str],
-                 extensions: List[str],
+                 formats: List[str] = None,
+                 extensions: List[str] = None,
                  base_dir: str | Path = "downloads",
                  delay: float = 2.0,
                  verbose: bool = False,
@@ -62,6 +62,9 @@ class IADownloadManager(BaseAction):
             verbose (bool): Whether to log detailed information during the download process.
             callback: Optional function to handle the stream instead of saving to disk
         """
+        if not formats and not extensions:
+            raise ValueError("At least one of 'formats' or 'extensions' must be specified.")
+
         self.formats = formats
         self.extensions = extensions
         self.base_dir = Path(base_dir)
@@ -149,7 +152,7 @@ class IADownloadManager(BaseAction):
                     resp.close() # Ensure the response is closed to free resources
 
             if not success:
-                logger.error(f"Failed to pipe {file_name} after {max_tries} attempts.")
+                logger.warning(f"Failed to pipe {file_name} after {max_tries} attempts.")
 
     def _get_target_files(self, item: Item) -> List[str]:
         """Filter files based on specified formats or extensions."""
