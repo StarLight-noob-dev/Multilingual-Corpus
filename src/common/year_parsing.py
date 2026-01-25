@@ -61,6 +61,10 @@ def extract_year(date_str: str, no_aprox: bool = False, *, adjustment: int = 5) 
     if "from old catalog" in s:
         return -1, False
 
+    # Replace characters that defined unclear digits for more robust parsing
+    s = s.replace('|', '9')
+    s = s.replace('u', '9')
+
     # First Handle centuries like "16th cent."
     c = CENTURY_PATTERN.search(s)
     if c:
