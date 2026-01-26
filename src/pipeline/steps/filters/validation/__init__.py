@@ -1,8 +1,7 @@
-from .copyright import EditionAnyCopyrightFilter, EditionCopyrightFilter
+from .copyright import EditionAnyCopyrightFilter
 from .field_validation import FieldValidationFilter, EditionsNecessaryFieldsFilter
 
 __all__ = [
-    "EditionCopyrightFilter",
     "EditionAnyCopyrightFilter",
     "FieldValidationFilter",
     "EditionsNecessaryFieldsFilter",
