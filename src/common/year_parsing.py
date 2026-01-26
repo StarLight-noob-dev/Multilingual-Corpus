@@ -3,6 +3,7 @@ import re
 from typing import Tuple
 
 from dateutil import parser
+from dateutil.utils import today
 
 CENTURY_PATTERN = re.compile(r"(\d{1,2})(?:st|nd|rd|th)\s*cent", re.IGNORECASE)
 # Matches years from 1 to 4 digits some contexts needs matching for 1 digit (e.g "1800 or 9" or "1800/1")
@@ -109,7 +110,7 @@ def extract_year(date_str: str, no_aprox: bool = False, *, adjustment: int = 5) 
     # Try parsing full date formats ("Feb 12, 1908", "17 July 1782")
     try:
         dt = parser.parse(s, fuzzy=True, default=None)
-        if dt.year:
+        if dt.year and dt.year != today().year:
             return dt.year, False
     except Exception:
         logger.debug("Date parsing failed for '%s':", date_str)
