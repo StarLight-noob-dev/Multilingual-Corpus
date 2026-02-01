@@ -10,7 +10,6 @@ from src.pipeline.steps.aggregators import CountingAggregator
 from src.pipeline.steps.transformers import EditionRecordParser
 from src.pipeline.steps.filters.validation import (
     EditionsNecessaryFieldsFilter,
-    EditionCopyrightFilter,
     FieldValidationFilter,
     EditionAnyCopyrightFilter
 )
