@@ -168,3 +168,13 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
             session.execute(stmt)
             session.commit()
             return True
+
+    def count(self) -> int:
+        """
+        Count the total number of entities in the repository.
+
+        Returns:
+            int: The total count of entities.
+        """
+        with self.session_factory() as session:
+            return session.query(self.model).count()
