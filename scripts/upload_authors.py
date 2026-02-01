@@ -1,3 +1,5 @@
+import logging
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from tqdm import tqdm
@@ -13,6 +15,11 @@ from src.repositories import AuthorRepository
 
 def upload_authors():
     MAX_WORKERS = 16
+    log = logging.getLogger("author upload")
+
+    start_time = time.time()
+    log.info(f"Started upload_authors() at {start_time}")
+
     repo = AuthorRepository(SessionLocal)
     pipeline = SequentialOrchestrator(
         steps=[
@@ -30,7 +37,13 @@ def upload_authors():
     db_exporter.flush()
 
     # 14751564 From OL dump
-    print(f"There are now {repo.count()} authors in the database.")
+    end_time = time.time()
+    log.debug(
+        f"Uploaded authors to database using {MAX_WORKERS} workers."
+        f"- Total time: {end_time - start_time} seconds."
+        f"- DB has {repo.count()} authors after upload. Expected ~14.75 million."
+    )
+    log.info(f"Finished upload_authors() in {end_time - start_time} seconds.")
 
 
 if __name__ == '__main__':
