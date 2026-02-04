@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from tqdm import tqdm
 
-from src.database.database import SessionLocal
+from src.database.postgres import SessionLocal
 from src.logger import clear_logs, setup_logging
 from src.pipeline.runner import SequentialOrchestrator
 from src.pipeline.steps.actions import BufferedPostgresExporter

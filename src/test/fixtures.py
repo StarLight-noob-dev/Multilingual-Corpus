@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.database.base import Base
-from src.database.database import get_test_engine, drop_test_db
+from src.database.postgres import get_test_engine, drop_test_db
 
 
 @pytest.fixture(scope="session")

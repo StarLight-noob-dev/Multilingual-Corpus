@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 
 from src.config.paths import DataPaths
-from src.database.database import SessionLocal
+from src.database.postgres import SessionLocal
 from src.logger import clear_logs, setup_logging
 from src.pipeline.steps.filters.lang_filters import LanguageFilter, AnyLanguageFilter
 from src.reader.dump_reader import DumpReader

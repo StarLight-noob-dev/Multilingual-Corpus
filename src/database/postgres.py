@@ -7,10 +7,9 @@ from sqlalchemy_utils import database_exists, create_database
 
 from src.database.base import Base
 from src.database.config import (
-    DB_NAME,
     DATABASE_URL,
     TEST_DATABASE_URL,
-    ADMIN_DATABASE_URL
+    ADMIN_DATABASE_URL, DB_CONFIG
 )
 
 # --- Create SQLAlchemy engine ---
@@ -36,7 +35,7 @@ def get_db() -> Session:
     return db
 
 
-def init_app_db() -> None:
+def initialize_postgres() -> None:
     print("Initializing application tables...")
     Base.metadata.create_all(bind=engine)
 
@@ -82,13 +81,13 @@ def drop_test_db() -> None:
                     f"""
                     SELECT pg_terminate_backend(pg_stat_activity.pid)
                     FROM pg_stat_activity
-                    WHERE pg_stat_activity.datname = '{DB_NAME}_test'
+                    WHERE pg_stat_activity.datname = '{DB_CONFIG["dbname"]}_test'
                     AND pid <> pg_backend_pid();
                     """
                 )
             )
             connection.execute(
-                text(f"DROP DATABASE IF EXISTS {DB_NAME}_test;")
+                text(f"DROP DATABASE IF EXISTS {DB_CONFIG["dbname"]}_test;")
             )
     except ProgrammingError as e:
         print(f"Error dropping test database: {e}")
