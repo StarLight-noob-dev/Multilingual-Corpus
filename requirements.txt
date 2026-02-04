@@ -1,9 +1,9 @@
 pytest
 python-dotenv
 psycopg2
-asyncpg
 sqlalchemy
 sqlalchemy-utils
+minio
 python-dateutil
-filelock
 internetarchive
+tqdm
