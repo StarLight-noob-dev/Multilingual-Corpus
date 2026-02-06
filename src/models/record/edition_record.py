@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, override, Optional
+from typing import List, override, Optional, Dict
 
 from .record_interface import IRecord
 from .record_status import RecordStatus
@@ -23,6 +23,17 @@ class EditionRecord(IRecord):
     status: RecordStatus = RecordStatus.PENDING
     error: Optional[str] = None
     retries: int = 0
+    has_copyright: bool = False
+    copyright_reason: Optional[str] = None
+
+    # --- ACL.2025 fields ---
+    temporal_estimates: Dict[str, int] = field(default_factory=dict)
+    median_year: Optional[int] = None
+    confidence_score: float = 0.0 # Agreement between estimates.
+    is_refined_subset: bool = False
+
+    #Number of characters, tokens and sentences as well as other structural statistics of the text.
+    structural_statistics: Dict[str, int] = field(default_factory=dict)
 
     @override
     def __repr__(self):
