@@ -41,12 +41,12 @@ class EditionORM(Base):
 
     # --- ACL.2025 fields ---
     # Maps to JSON/JSONB to store dictionary structures
-    temporal_estimates: Mapped[Dict[str, int]] = mapped_column(JSONB, default_factory=dict)
+    temporal_estimates: Mapped[Dict[str, int]] = mapped_column(JSONB, default=dict)
     median_year: Mapped[Optional[int]] = mapped_column(Integer, default=None)
     confidence_score: Mapped[float] = mapped_column(Float, default=0.0)
     is_refined_subset: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    structural_statistics: Mapped[Dict[str, int]] = mapped_column(JSONB, default_factory=dict)
+    structural_statistics: Mapped[Dict[str, int]] = mapped_column(JSONB, default=dict)
 
     # Notes: Consider to define Many-to-Many relationships with authors table in future iterations
     # for more complex queries.
