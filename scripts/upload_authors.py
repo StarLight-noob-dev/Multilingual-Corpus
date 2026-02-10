@@ -14,7 +14,7 @@ from src.repositories import AuthorRepository
 
 
 def upload_authors():
-    MAX_WORKERS = 16
+    MAX_WORKERS = 2
     log = logging.getLogger("author upload")
 
     start_time = time.time()
@@ -24,14 +24,14 @@ def upload_authors():
     pipeline = SequentialOrchestrator(
         steps=[
             AuthorRecordParser(),
-            (db_exporter := BufferedPostgresExporter(repository=repo))
+            (db_exporter := BufferedPostgresExporter(repository=repo, buffer_size=10000)),
         ]
     )
 
     records = DumpReader.get_author_generator()
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        for record in tqdm(records, unit=" recs", desc="Uploading authors"):
+        for record in tqdm(records, unit=" recs", desc="Pushing author records to pipeline"):
             executor.submit(pipeline.run, record)
 
     db_exporter.flush()
