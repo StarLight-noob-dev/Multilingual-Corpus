@@ -31,14 +31,12 @@ class AuthorRecordParser(RecordParser):
 
         raw_birth_date = self._get_str(data, "birth_date")
         raw_death_date = self._get_str(data, "death_date")
-        birth_date, _ = extract_year(raw_birth_date, no_aprox=True)  # We don't care about birthdate exactness
-        death_date, exact = extract_year(raw_death_date, no_aprox=True)
+        birth_date = extract_year(raw_birth_date)
+        death_date = extract_year(raw_death_date)
 
         return AuthorRecord(
             ol_id=ol_id,
             name=name,
-            death_date_raw=raw_death_date,
             death_date=death_date,
-            birth_date=birth_date,
-            is_death_date_exact=exact
+            birth_date=birth_date
         )

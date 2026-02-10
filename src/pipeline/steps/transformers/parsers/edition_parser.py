@@ -30,7 +30,7 @@ class EditionRecordParser(RecordParser):
         ocaid = data.get("ocaid") or ""
         title = data.get("title") or ""
         publishing_date_raw = data.get("publish_date") or ""
-        publishing_date, is_approximate = extract_year(publishing_date_raw, no_aprox=True)
+        publishing_date = extract_year(publishing_date_raw)
 
         # Normalize authors: accept list of dicts or list of dicts {'key': '/authors/OL1A'}
         raw_authors = self._get_list(data, "authors")
@@ -48,9 +48,7 @@ class EditionRecordParser(RecordParser):
             ol_id=ol_id,
             ocaid=ocaid,
             title=title,
-            publishing_date_raw=publishing_date_raw,
             publishing_date=publishing_date,
-            is_approximate=is_approximate,
             authors=authors,
             languages=languages,
             isbn_10=isbn_10,
