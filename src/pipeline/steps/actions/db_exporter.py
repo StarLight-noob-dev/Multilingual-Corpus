@@ -1,10 +1,13 @@
+import logging
 import threading
-from typing import override
+from typing import override, List
 
 from src.common.types import T_DOMAIN, T_ORM, T_ID
 from src.pipeline.steps import BaseAction
 from src.repositories import BaseSqlRepository
 
+
+logger = logging.getLogger("BufferedPostgresExporter")
 
 class BufferedPostgresExporter(BaseAction):
     """
@@ -29,28 +32,39 @@ class BufferedPostgresExporter(BaseAction):
 
     @override
     def perform(self, data: T_DOMAIN) -> T_DOMAIN:
+        to_flush = None
         with self._lock:
             self.buffer.append(data)
             if len(self.buffer) >= self.buffer_size:
-                self.flush()
+                to_flush = self.buffer
+                self.buffer = []
+        if to_flush:
+            self._flush_buffer(to_flush)
         return data
 
     def flush(self) -> None:
-        """Flush the buffer and insert all buffered records into the database."""
-        if not self.buffer:
+        """Flush the buffered records to the database."""
+        to_flush = None
+        with self._lock:
+            if self.buffer:
+                to_flush = self.buffer
+                self.buffer = []
+        if to_flush:
+            self._flush_buffer(to_flush)
+
+    def _flush_buffer(self, records: List[T_DOMAIN]) -> None:
+        """Helper method to flush a given list of records to the database."""
+        if not records:
             return
 
         try:
             if hasattr(self.repo, 'bulk_insert'):
-                self.repo.bulk_insert(self.buffer)
+                self.repo.bulk_insert(records)
             elif hasattr(self.repo, 'create_many'):
                 key = self.repo.mapper.ORM_CLASS.__table__.primary_key.columns.keys()
-                self.repo.create_many(self.buffer, conflict_index=key)
+                self.repo.create_many(records, conflict_index=key)
             else:
-                for record in self.buffer:
+                for record in records:
                     self.repo.create(record)
         except Exception as e:
-            # TODO Log the error or handle it as needed
-            print(f"Error during bulk insert: {e}")
-        finally:
-            self.buffer = []
+            logger.exception(f"Failed to flush buffer to database: {e}")
