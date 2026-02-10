@@ -1,6 +1,8 @@
-from typing import Optional, override
+from typing import override, Dict
 
-from sqlalchemy import String, Integer, Boolean
+from sqlalchemy import String
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base import Base
@@ -20,10 +22,17 @@ class AuthorORM(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
 
     # Date Information
-    birth_date: Mapped[int] = mapped_column(Integer, default=-1)
-    death_date: Mapped[int] = mapped_column(Integer, default=-1)
-    death_date_raw: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    is_death_date_exact: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
+    birth_date: Mapped[Dict[str, object]] = mapped_column(
+        MutableDict.as_mutable(JSONB),
+        default=dict,
+        nullable=False
+    )
+
+    death_date: Mapped[Dict[str, object]] = mapped_column(
+        MutableDict.as_mutable(JSONB),
+        default=dict,
+        nullable=False
+    )
 
     @override
     def __repr__(self) -> str:

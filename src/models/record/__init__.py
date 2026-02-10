@@ -3,11 +3,13 @@ from .record_status import RecordStatus
 from .transport_record import TransportRecord
 from .author_record import AuthorRecord
 from .edition_record import EditionRecord
+from .parsed_date import ParsedDate
 
 __all__ = [
     "IRecord",
     "RecordStatus",
     "TransportRecord",
     "AuthorRecord",
-    "EditionRecord"
+    "EditionRecord",
+    "ParsedDate"
 ]

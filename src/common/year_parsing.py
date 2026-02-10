@@ -1,9 +1,10 @@
 import logging
 import re
-from typing import Tuple
 
 from dateutil import parser
 from dateutil.utils import today
+
+from src.models.record import ParsedDate
 
 CENTURY_PATTERN = re.compile(r"(\d{1,2})(?:st|nd|rd|th)\s*cent", re.IGNORECASE)
 # Matches years from 1 to 4 digits some contexts needs matching for 1 digit (e.g "1800 or 9" or "1800/1")
@@ -14,105 +15,110 @@ KNOWN_NON_DATES = {"(", ")", ".", ",", "*", ".*"}
 logger = logging.getLogger(__name__)
 
 
-def extract_year(date_str: str, no_aprox: bool = False, *, adjustment: int = 5) -> Tuple[int, bool]:
+def extract_year(date_str: str) -> ParsedDate:
     """
-    Extracts the most specific year from a given date string. If the string is not clear it will approximate the year
-    to the highest possible year found matching the descriptions.
-
-    Examples of date strings it can handle:
-
-    - "1782" -> 1782
-    - "ca. 1782" -> 1782
-    - "16th cent." -> 1600
-    - "Feb 12, 1908" -> 1908
-    - "1782 or 1789" -> 1789
-    - "1800/1" -> 1801
-
-    If no valid year can be extracted, it returns -1.
-
-    The approximate flag is `True` if the year is derived from an approximate date (e.g., "ca. 1782").
-
-    For certain formats that contains an approximate indicator, the year will be adjusted by adding a fixed number
-    of years (default is 5) to account for uncertainty, unless the `no_aprox` parameter flag is set to True.
-    (e.g., "ca. 1782" -> 1787)
-
-    Note: This function prioritizes extracting the highest possible year from the string and its thought for gathering
-    the **death year** of authors from uncertain date strings.
-
-    Args:
-        date_str (str): The date string to parse.
-        no_aprox (bool): If True, for cases where an approximate indicator is found, the year will be returned
-        without any approximation adjustment.
-        adjustment (int): The number of years to add for approximate dates. Default is 5.
+    Extracts a year from a date string and indicates whether the result is exact and a reason in case it's not.
 
     Returns:
-        A tuple containing a year (int) and a boolean indicating if the year is approximate.
-        If no valid year is found, returns (-1, False).
+        A ParsedDate instance with the original string, the parsed year (or -1 if unknown), whether it's exact,
+        and a reason if not exact.
     """
     if not date_str or not isinstance(date_str, str):
-        return -1, False
+        return ParsedDate(None, -1, True, "No value given")
 
     # Handle common known non-date strings quickly
     if date_str in KNOWN_NON_DATES:
-        return -1, False
+        return ParsedDate(date_str, -1, True, "known-non-date")
 
+    s_original = date_str
     s = date_str.strip().lower()
 
     # Early exit for known non-date strings
     if "from old catalog" in s:
-        return -1, False
+        return ParsedDate(s_original, -1, True, "known-non-date")
 
-    # Replace characters that defined unclear digits for more robust parsing
-    s = s.replace('|', '9')
-    s = s.replace('u', '9')
+    exact = True
+    reason = ""
 
-    # First Handle centuries like "16th cent."
+    # Conservative sanitization: replace ambiguous digit characters only when adjacent to digits
+    # e.g. "180u" or "180|1" -> replace the 'u' or '|' with '9' to attempt a reasonable interpretation.
+    if re.search(r"\d[|ux_]+\d|\d[|ux_]+(?=\W|$)", s):
+        s = re.sub(r"[|ux_]", "9", s)
+        exact = False
+        reason = "sanitized"
+
+    # First handle centuries like "16th cent." -> highest year of century (e.g., 16 -> 1600) and mark exact.
     c = CENTURY_PATTERN.search(s)
     if c:
-        century = int(c.group(1))
-        # 16th century = 1501–1600 -> highest = 1600
-        return century * 100, True
+        try:
+            century = int(c.group(1))
+            year = century * 100
+            return ParsedDate(s_original, year, False, "century")
+        except Exception:
+            logger.debug(f"Century parsing failed for '{s_original}'")
 
-    # Check for approximate indicators
+    # Check for exact indicators (ca., circa, about, ...)
     a = APPROXIMATE_PATTERN.search(s)
+    if a:
+        exact = False
+        reason = reason or "exact-indicator"
+        # remove indicator for cleaner extraction
+        s = re.sub(APPROXIMATE_PATTERN, "", s)
 
-    # Clean known prefixes / uncertainty indicators before year extraction for easier parsing.
-    # If no approximation indicator is found, we still clean them for better year extraction later.
-    s = re.sub(APPROXIMATE_PATTERN, "", s)
+    # Clean other trivial noise
     s = re.sub(r"[?]", "", s)
     s = s.strip()
 
-    if a:
-        # If there is one approximate indicator, we treat the year as approximate do + `adjustment` years to be safe.
-        f = YEAR_PATTERN.findall(s)
-        if f:
-            year = max(int(y) for y in f)
-            if no_aprox:
-                return year, False
-            return year + adjustment, True
-
-    # Handle date ranges or alternatives ("1782 or 1789", "1800/1")
-    parts = re.split(r"[-/]| or ", s)
+    # Handle date ranges or alternatives ("1782 or 1789", "1800/1", "1782-1789")
+    parts = re.split(r"\s*(?:-|/| or )\s*", s)
     years = []
+    short_year_expanded = False
     for part in parts:
         found = YEAR_PATTERN.findall(part)
         for y in found:
-            year = int(y)
-            # Handle short second year like "1782 or 9" -> 1789
+            try:
+                year = int(y)
+            except ValueError:
+                continue
+            # Handle short second year like "1782 or 9" -> 1789 (exact, short-year)
             if year < 100 and years:
                 prev = max(years)
-                base = int(str(prev)[:len(str(prev)) - len(str(year))] + str(year))
+                prev_s = str(prev)
+                y_s = str(year)
+                # Build a base by replacing last digits of prev with the short year
+                prefix_len = max(len(prev_s) - len(y_s), 0)
+                base = int(prev_s[:prefix_len] + y_s) if prefix_len > 0 else int(y_s)
                 year = base
+                short_year_expanded = True
             years.append(year)
+
     if years:
-        return max(years), True if len(parts) > 1 else False
+        final_year = max(years)
+        # If there were multiple parts (range/choice) it's exact.
+        if len(parts) > 1 and any(part.strip() for part in parts):
+            exact = False
+            reason = "range"
+        # Short-year expansion is also exact
+        if short_year_expanded:
+            exact = False
+            # prefer existing reason if set, else set to short-year
+            reason = reason or "short-year"
+
+        if final_year > today().year:
+            return ParsedDate(s_original, final_year, False, "future-year")
+
+        return ParsedDate(s_original, final_year, exact, reason or "")
 
     # Try parsing full date formats ("Feb 12, 1908", "17 July 1782")
     try:
-        dt = parser.parse(s, fuzzy=True, default=None)
-        if dt.year and dt.year != today().year:
-            return dt.year, False
+        dt = parser.parse(s, fuzzy=True)
+        # If parsing succeeded and produced a plausible year different from the current year,
+        # we consider it exact unless previously flagged.
+        if dt and getattr(dt, "year", None):
+            parsed_year = dt.year
+            # If previously flagged exact, keep that reason; else mark as exact
+            return ParsedDate(s_original, parsed_year, exact, reason or "")
     except Exception:
-        logger.debug("Date parsing failed for '%s':", date_str)
+        logger.debug("Date parsing failed for '%s':", s_original)
 
-    return -1, False
+    return ParsedDate(s_original, -1, True, "Failed to parse")

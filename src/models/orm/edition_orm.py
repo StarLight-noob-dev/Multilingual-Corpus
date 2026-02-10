@@ -2,6 +2,7 @@ from typing import Optional, List, override, Dict
 
 from sqlalchemy import String, Integer, Boolean, Enum as SQLEnum, Float
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base import Base
@@ -29,9 +30,11 @@ class EditionORM(Base):
     copyright_reason: Mapped[Optional[str]] = mapped_column(String, nullable=True, default=None)
 
     # Publishing Dates
-    publishing_date_raw: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    publishing_date: Mapped[int] = mapped_column(Integer)
-    is_approximate: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
+    publishing_date_raw: Mapped[Dict[str, object]] = mapped_column(
+        MutableDict.as_mutable(JSONB),
+        default=dict,
+        nullable=False
+    )
 
     # Collections
     authors: Mapped[List[str]] = mapped_column(ARRAY(String), default=list)

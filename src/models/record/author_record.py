@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from typing import override, Optional
+from typing import override
 
+from .parsed_date import ParsedDate
 from .record_interface import IRecord
 
 
@@ -10,10 +11,8 @@ class AuthorRecord(IRecord):
 
     ol_id: str
     name: str
-    death_date_raw: Optional[str] = field(default=None)
-    death_date: int = field(default=-1)
-    birth_date: int = field(default=-1)
-    is_death_date_exact: bool = field(default=False)
+    birth_date: ParsedDate = field(default_factory=lambda: ParsedDate(None, -1, False))
+    death_date: ParsedDate = field(default_factory=lambda: ParsedDate(None, -1, False))
 
     @override
     def __repr__(self):

@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, override, Optional, Dict
 
+from .parsed_date import ParsedDate
 from .record_interface import IRecord
 from .record_status import RecordStatus
 
@@ -12,9 +13,7 @@ class EditionRecord(IRecord):
     ol_id: str  # Open Library Identifier
     ocaid: str  # Internet Archive Identifier
     title: str
-    publishing_date: int
-    is_approximate: bool
-    publishing_date_raw: Optional[str] = None
+    publishing_date: ParsedDate = field(default_factory=lambda: ParsedDate(None, -1, False))
     authors: List[str] = field(default_factory=list)  # List of author IDs
     languages: List[str] = field(default_factory=list)
     isbn_10: List[str] = field(default_factory=list)
