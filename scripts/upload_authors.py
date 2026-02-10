@@ -89,6 +89,7 @@ def cli():
             print("No valid chunks selected. Please try again.")
 
     for chunk in selected_chunks:
+        print("Started processing chunk:", chunk)
         upload_authors(chunk)
 
 
