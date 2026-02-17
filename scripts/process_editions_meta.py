@@ -40,7 +40,7 @@ def parse_data_download_books(chunk: Chunk) -> None:
         ]
     )
 
-    records = DumpReader.process_file(*chunk)
+    records = DumpReader.record_generator(*chunk)
     for record in records:
         pipeline.run(record)
 
