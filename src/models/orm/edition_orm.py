@@ -30,7 +30,7 @@ class EditionORM(Base):
     copyright_reason: Mapped[Optional[str]] = mapped_column(String, nullable=True, default=None)
 
     # Publishing Dates
-    publishing_date_raw: Mapped[Dict[str, object]] = mapped_column(
+    publishing_date: Mapped[Dict[str, object]] = mapped_column(
         MutableDict.as_mutable(JSONB),
         default=dict,
         nullable=False
