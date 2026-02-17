@@ -2,7 +2,7 @@ from dataclasses import fields, asdict
 from typing import Generic, Type, List, Dict, Any
 
 from src.common.types import T_DOMAIN, T_ORM
-from src.models.record import EditionRecord, AuthorRecord, ParsedDate
+from src.models.record import EditionRecord, AuthorRecord, ParsedDate, CopyrightInfo, StageInfo
 from src.models.orm import EditionORM, AuthorORM
 
 
@@ -70,13 +70,19 @@ class EditionMapper(BaseMapper[EditionRecord, EditionORM]):
     DOMAIN_CLASS = EditionRecord
     ORM_CLASS = EditionORM
 
+    ORM_TO_DOMAIN = {
+        "publishing_date": lambda d: ParsedDate.from_dict(d),
+        "copyright_info": lambda c: CopyrightInfo.from_dict(c),
+        "stages": lambda s: {k: StageInfo.from_dict(v) for k, v in s.items()}
+    }
+
 
 class AuthorMapper(BaseMapper[AuthorRecord, AuthorORM]):
     DOMAIN_CLASS = AuthorRecord
     ORM_CLASS = AuthorORM
 
     ORM_TO_DOMAIN = {
-        "birth_date": lambda d: ParsedDate.from_mapped_dict(d),
-        "death_date": lambda d: ParsedDate.from_mapped_dict(d)
+        "birth_date": lambda d: ParsedDate.from_dict(d),
+        "death_date": lambda d: ParsedDate.from_dict(d)
     }
 
