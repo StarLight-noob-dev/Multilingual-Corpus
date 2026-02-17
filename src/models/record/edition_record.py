@@ -33,4 +33,4 @@ class EditionRecord(IRecord):
 
     @override
     def __repr__(self):
-        return f"EditionRecord(ol_id={self.ol_id}, ocaid={self.ocaid}, title={self.title}, path={self.local_path})"
+        return f"EditionRecord(ol_id={self.ol_id}, ocaid={self.ocaid}, title={self.title}, path={self.file_uri})"
