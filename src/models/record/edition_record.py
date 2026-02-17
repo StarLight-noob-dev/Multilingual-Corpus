@@ -3,7 +3,7 @@ from typing import List, override, Optional, Dict
 
 from .parsed_date import ParsedDate
 from .record_interface import IRecord
-from .record_status import RecordStatus
+from .record_status import CopyrightInfo, StageInfo
 
 
 @dataclass
@@ -18,12 +18,9 @@ class EditionRecord(IRecord):
     languages: List[str] = field(default_factory=list)
     isbn_10: List[str] = field(default_factory=list)
     isbn_13: List[str] = field(default_factory=list)
-    local_path: Optional[str] = None
-    status: RecordStatus = RecordStatus.PENDING
-    error: Optional[str] = None
-    retries: int = 0
-    has_copyright: bool = False
-    copyright_reason: Optional[str] = None
+    file_uri: List[str] = field(default_factory=list)
+    stages: Dict[str, StageInfo] = field(default_factory=dict)
+    copyright_info: CopyrightInfo = field(default_factory=lambda: CopyrightInfo())
 
     # --- ACL.2025 fields ---
     temporal_estimates: Dict[str, int] = field(default_factory=dict)

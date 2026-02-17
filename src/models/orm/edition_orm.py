@@ -22,12 +22,17 @@ class EditionORM(Base):
 
     # Title & Metadata
     title: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    local_path: Mapped[Optional[str]] = mapped_column(String, nullable=True, default=None)
-    status: Mapped[RecordStatus] = mapped_column(SQLEnum(RecordStatus), default=RecordStatus.PENDING)
-    error: Mapped[Optional[str]] = mapped_column(String, nullable=True, default=None)
-    retries: Mapped[int] = mapped_column(Integer, server_default="0", default=0)
-    has_copyright: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
-    copyright_reason: Mapped[Optional[str]] = mapped_column(String, nullable=True, default=None)
+    file_uri: Mapped[List[str]] = mapped_column(ARRAY(String), default=list)
+    stages: Mapped[Dict[str, object]] = mapped_column(
+        MutableDict.as_mutable(JSONB),
+        default=dict,
+        nullable=False
+    )
+    copyright_info: Mapped[Dict[str, object]] = mapped_column(
+        MutableDict.as_mutable(JSONB),
+        default=dict,
+        nullable=False
+    )
 
     # Publishing Dates
     publishing_date: Mapped[Dict[str, object]] = mapped_column(
