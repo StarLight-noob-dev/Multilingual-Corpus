@@ -7,7 +7,7 @@ from typing import List, Optional, override, Any, Callable
 import requests
 from internetarchive import get_item, Item
 
-from src.models.record import EditionRecord
+from src.models.record import EditionRecord, RecordStatus
 from src.pipeline.steps import BaseAction
 from src.utils.file_utils import unpack_gzip
 
@@ -88,6 +88,8 @@ class IADownloadManager(BaseAction):
             if not target_files:
                 logger.debug(f"No matching files for {identifier}")
                 data.local_path = None  # Ensures local_path is None
+                data.status = RecordStatus.METADATA_EXTRACTED
+                data.error = "No matching files found for specified formats/extensions."
                 return data
 
             if self.callback:
@@ -132,7 +134,7 @@ class IADownloadManager(BaseAction):
             max_tries = 3
 
             while not success and attempts < max_tries:
-                response = item.download(files=file_name, return_responses=True) # type: ignore
+                response = item.download(files=file_name, return_responses=True, timeout=30) # type: ignore
                 resp = response[0] if response else None # Should only be one response
 
                 if not resp or resp.status_code != 200:
@@ -153,6 +155,8 @@ class IADownloadManager(BaseAction):
 
             if not success:
                 logger.warning(f"Failed to pipe {file_name} after {max_tries} attempts.")
+                data.status = RecordStatus.ERROR
+                data.error = f"Failed to download {file_name}."
 
     def _get_target_files(self, item: Item) -> List[str]:
         """Filter files based on specified formats or extensions."""

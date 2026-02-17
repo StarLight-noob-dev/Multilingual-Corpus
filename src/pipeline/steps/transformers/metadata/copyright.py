@@ -55,7 +55,7 @@ class EditionCopyrightCalculation(BaseTransformer):
         if repo:
             authors = repo.get_many_by_ids(data.authors)
             last_author_dead_year = max(
-                (a.death_date for a in authors if a and a.death_date),
+                (a.death_date.parsed_val for a in authors if a and a.death_date),
                 default=None
             )
 
@@ -76,7 +76,7 @@ class EditionCopyrightCalculation(BaseTransformer):
         '''
 
         # Anonymous/pseudonymous works — apply copyright window after publication (§ 66 UrhG)
-        publication_year = data.publishing_date or None
+        publication_year = data.publishing_date.parsed_val or None
         if publication_year and publication_year > 0:
             expiry_year = publication_year + self.copyright_window_years
             r = self.current_year <= expiry_year

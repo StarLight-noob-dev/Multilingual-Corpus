@@ -95,5 +95,5 @@ def cli():
 
 if __name__ == '__main__':
     clear_logs()
-    setup_logging()
+    setup_logging("upload_authors.log")
     cli()
