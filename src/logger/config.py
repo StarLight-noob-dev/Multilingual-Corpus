@@ -5,7 +5,7 @@ from src.config.paths import DataPaths
 from src.logger.buffered_handler import BufferedFileHandler
 
 
-def setup_logging():
+def setup_logging(file_name: str = "pipeline.log") -> None:
     # Ensure log directory exists
     log_dir = DataPaths.LOGS_DIR
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -19,7 +19,7 @@ def setup_logging():
     console_h.setFormatter(formatter)
 
     # Setup Main Buffered File Handler
-    file_h = BufferedFileHandler(log_dir / "pipeline.log", capacity=200)
+    file_h = BufferedFileHandler(log_dir / file_name, capacity=200)
     file_h.setLevel(logging.DEBUG)
     file_h.setFormatter(formatter)
 
