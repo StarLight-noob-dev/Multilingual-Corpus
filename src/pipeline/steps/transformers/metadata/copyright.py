@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Callable, override, Any
 
-from src.models.record import EditionRecord
+from src.models.record import EditionRecord, CopyrightInfo, CopyrightStatus
 from src.pipeline.steps import BaseTransformer
 from src.repositories import AuthorRepository
 
@@ -62,9 +62,12 @@ class EditionCopyrightCalculation(BaseTransformer):
             # Author is known — apply copyright window after death (§ 64 UrhG)
             if last_author_dead_year and last_author_dead_year > 0:
                 expiry_year = last_author_dead_year + self.copyright_window_years
-                r = self.current_year <= expiry_year
-                data.has_copyright = r
-                data.copyright_reason = f"Author died in {last_author_dead_year}, copyright expires in {expiry_year}." if r else None
+                enough_time_passed = self.current_year > expiry_year
+                info = CopyrightInfo(
+                    status=CopyrightStatus.PUBLIC_DOMAIN if enough_time_passed else CopyrightStatus.IN_COPYRIGHT,
+                    reason=f"Author died in {last_author_dead_year}, copyright expires in {expiry_year}." if not enough_time_passed else None
+                )
+                data.copyright = info
                 return data
 
         '''
@@ -79,12 +82,18 @@ class EditionCopyrightCalculation(BaseTransformer):
         publication_year = data.publishing_date.parsed_val or None
         if publication_year and publication_year > 0:
             expiry_year = publication_year + self.copyright_window_years
-            r = self.current_year <= expiry_year
-            data.has_copyrighted = r
-            data.copyright_reason = f"No info about author. Published in {publication_year}, copyright expires in {expiry_year}." if r else None
+            enough_time_passed = self.current_year > expiry_year
+            info = CopyrightInfo(
+                status=CopyrightStatus.PUBLIC_DOMAIN if enough_time_passed else CopyrightStatus.IN_COPYRIGHT,
+                reason=f"Published in {publication_year}, copyright expires in {expiry_year}." if not enough_time_passed else None
+            )
+            data.copyright = info
             return data
 
         # Default to copyrighted if no conditions met
-        data.has_copyrighted = True
-        data.copyright_reason = "No sufficient information to determine copyright status. Defaulting to copyrighted."
+        default = CopyrightInfo(
+            status=CopyrightStatus.IN_COPYRIGHT,
+            reason="No sufficient information to determine copyright status. Defaulting to copyrighted."
+        )
+        data.copyright = default
         return data

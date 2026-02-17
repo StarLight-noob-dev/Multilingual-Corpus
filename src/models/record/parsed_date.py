@@ -18,7 +18,7 @@ class ParsedDate:
         return self.parsed_val != -1
 
     @staticmethod
-    def from_mapped_dict(d: dict) -> 'ParsedDate':
+    def from_dict(d: dict) -> 'ParsedDate':
         """Creates a ParsedDate instance from a dictionary."""
         return ParsedDate(
             raw=d.get("raw"),
