@@ -52,6 +52,5 @@ class EditionRecordParser(RecordParser):
             authors=authors,
             languages=languages,
             isbn_10=isbn_10,
-            isbn_13=isbn_13,
-            local_path=None
+            isbn_13=isbn_13
         )
