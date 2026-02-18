@@ -10,7 +10,7 @@ from src.logger import setup_logging
 from src.models.file_chunk import Chunk
 from src.models.record import EditionRecord, RecordStatus
 from src.pipeline.runner import SequentialOrchestrator
-from src.pipeline.steps.actions import BufferedPostgresExporter, IADownloadManager
+from src.pipeline.steps.actions import BufferedPostgresExporter
 from src.pipeline.steps.transformers import EditionRecordParser
 from src.pipeline.steps.transformers.metadata.copyright import EditionCopyrightCalculation
 from src.reader.dump_reader import DumpReader
@@ -19,7 +19,7 @@ from src.repositories import EditionRepository, AuthorRepository
 log = logging.getLogger("edition_meta_download")
 
 
-def parse_data_download_books(chunk: Chunk) -> None:
+def parse_data_and_upload(chunk: Chunk) -> None:
     start_time = time.time()
 
     edition_repo = EditionRepository(SessionLocal)
@@ -30,12 +30,6 @@ def parse_data_download_books(chunk: Chunk) -> None:
         steps=[
             EditionRecordParser(),
             EditionCopyrightCalculation(repository=author_repo),
-            IADownloadManager(
-                formats=['DjVuTXT'],
-                base_dir=DataPaths.DOWNLOAD_DIR,
-                delay=1.0,
-                callback=store_book_to_bucket # Automatically uploads books to MinIO
-            ),
             db_exporter # Uploads metadata to Postgres
         ]
     )
@@ -148,7 +142,7 @@ def cli():
     for chunk in selected_chunks:
         print("\n")
         log.info(f"Started processing chunk: {chunk}")
-        parse_data_download_books(chunk)
+        parse_data_and_upload(chunk)
         print("\n")
 
 
