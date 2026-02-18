@@ -1,5 +1,6 @@
 import logging
 import shutil
+from logging.handlers import RotatingFileHandler
 
 from src.config.paths import DataPaths
 from src.logger.buffered_handler import BufferedFileHandler
@@ -9,6 +10,7 @@ def setup_logging(file_name: str = "pipeline.log") -> None:
     # Ensure log directory exists
     log_dir = DataPaths.LOGS_DIR
     log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / file_name
 
     # Define the Formatter
     formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s')
@@ -19,7 +21,12 @@ def setup_logging(file_name: str = "pipeline.log") -> None:
     console_h.setFormatter(formatter)
 
     # Setup Main Buffered File Handler
-    file_h = BufferedFileHandler(log_dir / file_name, capacity=200)
+    file_h = RotatingFileHandler(
+        log_path,
+        maxBytes=10 * 1024 * 1024,  # 10 MB
+        backupCount=5,
+        encoding='utf-8'
+    )
     file_h.setLevel(logging.DEBUG)
     file_h.setFormatter(formatter)
 
