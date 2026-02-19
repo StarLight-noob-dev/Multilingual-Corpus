@@ -128,10 +128,12 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             List[T_DOMAIN]: List of all domain model instances.
         """
-        with self.session_factory() as session:
-            stmt = select(self.model)
-            orm_entities: List[T_ORM] = list(session.scalars(stmt).all())
+        session = self.session_factory()
+        try:
+            orm_entities: List[T_ORM] = list(session.scalars(select(self.model)).all())
             return [self.mapper.to_domain(e) for e in orm_entities]
+        finally:
+            self.session_factory.remove()
 
     def stream_all(self, batch_size: int = 100) -> Iterable[T_DOMAIN]:
         """
