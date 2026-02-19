@@ -1,8 +1,8 @@
-from typing import Optional, List, Type, Iterable, Any
+from typing import Optional, List, Type, Iterable, Any, overload, override
 
 from sqlalchemy import select, update, delete
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import scoped_session
 
 from src.common.types import T_DOMAIN, T_ORM, T_ID
 from src.mappers import BaseMapper
@@ -16,14 +16,14 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
     """
 
     def __init__(self,
-                 session_factory: sessionmaker ,
+                 session_factory: scoped_session ,
                  mapper: Type[BaseMapper[T_DOMAIN, T_ORM]],
                  ):
         """
-        Initialize the repository with a SQLAlchemy session and model.
+        Initialize the repository with a SQLAlchemy session factory and model.
 
         Args:
-            session (Session): SQLAlchemy session for database operations.
+            session_factory (scoped_session): SQLAlchemy scoped_session factory for obtaining Session instances.
             mapper (Type[BaseMapper[T_DOMAIN, T_ORM]]): Mapper class for converting between domain and ORM models.
         """
         self.session_factory = session_factory
@@ -42,12 +42,18 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             T_DOMAIN: The created domain model instance with updated fields (e.g., ID).
         """
-        with self.session_factory() as session:
+        session = self.session_factory()
+        try:
             orm = self.mapper.to_orm(entity)
             session.add(orm)
             session.commit()
             session.refresh(orm)
             return self.mapper.to_domain(orm)
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            self.session_factory.remove()
 
     def create_many(self, entities: Iterable[T_DOMAIN], conflict_index: Optional[List[str]] = None) -> List[T_DOMAIN]:
         """
@@ -88,11 +94,12 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             Optional[T_DOMAIN]: The domain model instance if found, else None.
         """
-        with self.session_factory() as session:
+        session = self.session_factory()
+        try:
             orm_entity = session.get(self.model, entity_id)
-            if orm_entity is None:
-                return None
-            return self.mapper.to_domain(orm_entity)
+            return self.mapper.to_domain(orm_entity) if orm_entity else None
+        finally:
+            self.session_factory.remove()
 
     def get_many_by_ids(self, entity_ids: List[T_ID]) -> List[T_DOMAIN]:
         """
@@ -104,15 +111,15 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             List[T_DOMAIN]: List of domain model instances if found, else an empty List.
         """
-        if not entity_ids:
-            return []
-        if len(entity_ids) == 0:
-            return []
-        with self.session_factory() as session:
-            pk_colum = getattr(self.model, self.pk_name)
-            stmt = select(self.model).where(pk_colum.in_(entity_ids))
-            orm_entities: List[T_ORM] = list(session.scalars(stmt).all())
+        if not entity_ids: return []
+        session = self.session_factory()
+        try:
+            pk_column = getattr(self.model, self.pk_name)
+            stmt = select(self.model).where(pk_column.in_(entity_ids))
+            orm_entities = session.scalars(stmt).all()
             return [self.mapper.to_domain(e) for e in orm_entities]
+        finally:
+            self.session_factory.remove()
 
     def get_all(self) -> List[T_DOMAIN]:
         """
@@ -126,6 +133,19 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
             orm_entities: List[T_ORM] = list(session.scalars(stmt).all())
             return [self.mapper.to_domain(e) for e in orm_entities]
 
+    def stream_all(self, batch_size: int = 100) -> Iterable[T_DOMAIN]:
+        """
+        Self-sufficient streaming.
+        Note: The session stays open until the generator is finished.
+        """
+        session = self.session_factory()
+        try:
+            stmt = select(self.model).execution_options(yield_per=batch_size)
+            for orm_entity in session.scalars(stmt):
+                yield self.mapper.to_domain(orm_entity)
+        finally:
+            self.session_factory.remove()
+
     def update(self, entity_id: T_ID, **fields: Any) -> Optional[T_DOMAIN]:
         """
         Update an entity by its ID with the provided fields.
@@ -137,7 +157,8 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             Optional[T_DOMAIN]: The updated domain model instance if found, else None.
         """
-        with self.session_factory() as session:
+        session = self.session_factory()
+        try:
             stmt = (
                 update(self.model)
                 .where(getattr(self.model, self.pk_name) == entity_id)
@@ -146,10 +167,36 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
             )
             session.execute(stmt)
             session.commit()
-            updated_entity = self.get_by_id(entity_id)
-            if updated_entity is None:
-                return None
-            return updated_entity
+            # Nested call to get_by_id is safe because it also calls .remove()
+            return self.get_by_id(entity_id)
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            self.session_factory.remove()
+
+    def update_entity(self, entity: T_DOMAIN) -> T_DOMAIN:
+        """
+        Updates the database record using the provided domain entity's current state.
+
+        Args:
+            entity (T_DOMAIN): The domain model containing updated values.
+
+        Returns:
+            T_DOMAIN: The refreshed domain model from the database.
+        """
+        session = self.session_factory()
+        try:
+            orm_update = self.mapper.to_orm(entity)
+            merged_orm = session.merge(orm_update)
+            session.commit()
+            session.refresh(merged_orm)
+            return self.mapper.to_domain(merged_orm)
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            self.session_factory.remove()
 
     def delete(self, entity_id: T_ID) -> bool:
         """
@@ -163,11 +210,17 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             bool: True if no exceptions were raised during deletion.
         """
-        with self.session_factory() as session:
+        session = self.session_factory()
+        try:
             stmt = delete(self.model).where(getattr(self.model, self.pk_name) == entity_id)
             session.execute(stmt)
             session.commit()
             return True
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            self.session_factory.remove()
 
     def count(self) -> int:
         """
@@ -176,5 +229,8 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         Returns:
             int: The total count of entities.
         """
-        with self.session_factory() as session:
+        session = self.session_factory()
+        try:
             return session.query(self.model).count()
+        finally:
+            self.session_factory.remove()

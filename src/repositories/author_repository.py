@@ -1,6 +1,6 @@
 from typing import List
 
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session
 
 from src.mappers import AuthorMapper
 from src.models.orm import AuthorORM
@@ -9,7 +9,7 @@ from src.repositories import BaseSqlRepository
 
 
 class AuthorRepository(BaseSqlRepository[AuthorRecord, AuthorORM, str]):
-    def __init__(self, session_factory: sessionmaker):
+    def __init__(self, session_factory: scoped_session):
         super().__init__(
             session_factory=session_factory,
             mapper=AuthorMapper

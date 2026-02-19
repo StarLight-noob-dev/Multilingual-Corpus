@@ -1,6 +1,6 @@
 from typing import List
 
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session
 
 from src.mappers import EditionMapper
 from src.models.orm import EditionORM
@@ -9,7 +9,7 @@ from src.repositories import BaseSqlRepository
 
 
 class EditionRepository(BaseSqlRepository[EditionRecord, EditionORM, str]):
-    def __init__(self, session_factory: sessionmaker):
+    def __init__(self, session_factory: scoped_session):
         super().__init__(
             session_factory=session_factory,
             mapper=EditionMapper

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 from sqlalchemy import String, Integer
-from sqlalchemy.orm import Mapped, mapped_column, Session, sessionmaker
+from sqlalchemy.orm import Mapped, mapped_column, Session, sessionmaker, scoped_session
 
 from src.database.base import Base
 from src.mappers import BaseMapper
@@ -36,7 +36,7 @@ class TestMapper(BaseMapper[TestEntityDomain, TestEntityORM]):
 
 # --- 2. SETUP: Concrete Test Repository (Test functionality from BaseSqlRepository) ---
 class TestRepo(BaseSqlRepository[TestEntityDomain, TestEntityORM, int]):
-    def __init__(self, session_factory: sessionmaker):
+    def __init__(self, session_factory: scoped_session):
         super().__init__(
             session_factory=session_factory,
             mapper=TestMapper
@@ -46,10 +46,10 @@ class TestRepo(BaseSqlRepository[TestEntityDomain, TestEntityORM, int]):
 # --- 3. TEST CLASS: Test Suite for Generic Repository Methods ---
 class TestGenericRepositoryMethods:
     repo: TestRepo
-    session: sessionmaker
+    session: scoped_session
 
     @pytest.fixture(autouse=True)
-    def setup_repository(self, session: sessionmaker):
+    def setup_repository(self, session: scoped_session):
         """Initializes the repository and provides access to the transactional session."""
         self.repo = TestRepo(session_factory=session)
         self.session = session
