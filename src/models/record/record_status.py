@@ -11,6 +11,7 @@ class RecordStatus(str, Enum):
     that should be skipped.
     """
     PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
     METADATA_EXTRACTED = "METADATA_EXTRACTED" # First pass from current OL dumps, including download of books when possible.
     RAG_COMPLETED = "RAG_COMPLETED"      # RAG completed; Obtained snippet answers for the record.
     CONSENSUS_REACHED = "CONSENSUS_REACHED"  # ACL.2025 Median year calculation done.
@@ -67,6 +68,10 @@ class StageInfo:
     status: RecordStatus = RecordStatus.PENDING
     message: Optional[str] = None  # Reason for failure or extra metadata
     timestamp: Optional[str] = None # When this stage finished
+
+    def with_status(self, status: RecordStatus) -> 'StageInfo':
+        """Return a new StageInfo with the same message and timestamp but the supplied status."""
+        return StageInfo(status=status, message=self.message, timestamp=self.timestamp)
 
     def with_message(self, message: Optional[str]) -> 'StageInfo':
         """Return a new StageInfo with the same status and the supplied message."""

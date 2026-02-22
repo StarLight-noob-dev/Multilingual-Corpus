@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from time import sleep
@@ -5,9 +6,9 @@ from pathlib import Path
 from typing import List, Optional, override, Any, Callable
 
 import requests
-from internetarchive import get_item, Item
+from internetarchive import get_session, Item
 
-from src.models.record import EditionRecord, RecordStatus
+from src.models.record import EditionRecord, RecordStatus, StageInfo
 from src.pipeline.steps import BaseAction
 from src.utils.file_utils import unpack_gzip
 
@@ -71,7 +72,12 @@ class IADownloadManager(BaseAction):
         self.delay = delay
         self.verbose = verbose
         self.callback = callback
-
+        self.ia_session = get_session(config={
+            'retries': 3,
+            'pool_connections': 16,
+            'pool_maxsize': 16,
+            'timeout': 30
+        })
         if not self.callback:
             self.base_dir.mkdir(parents=True, exist_ok=True)
 
@@ -82,26 +88,45 @@ class IADownloadManager(BaseAction):
             return data
 
         try:
-            item = get_item(identifier)
+            item = self.ia_session.get_item(identifier)
             target_files: List[str] = self._get_target_files(item)
 
             if not target_files:
                 logger.debug(f"No matching files for {identifier}")
-                data.local_path = None  # Ensures local_path is None
-                data.status = RecordStatus.METADATA_EXTRACTED
-                data.error = "No matching files found for specified formats/extensions."
+                msg = f"No public files found for specified formats={self.formats} or extensions={self.extensions}."
+                st = StageInfo(status=RecordStatus.COMPLETED, message=msg)
+                data.stages['book_download'] = st
                 return data
+
+            data.stages['book_download'] = StageInfo(
+                status=RecordStatus.IN_PROGRESS,
+                message=f"Starting download of {len(target_files)} files.",
+                timestamp=str(datetime.datetime.now())
+            )
 
             if self.callback:
                 self._handle_callback_stream(item, target_files, data)
             else:
                 self._handle_local_download(item, target_files, data)
 
+            st = data.stages['book_download']
+            if st and st.status == RecordStatus.IN_PROGRESS:
+                new_st = st.with_status(RecordStatus.COMPLETED).with_message(st.message + " Download completed.")
+                data.stages['book_download'] = new_st
+
             sleep(self.delay)
 
+        except RecursionError as rec_err:
+            logger.error(f"Recursion error for {identifier}: {rec_err}")
+            raise RecursionError(f"Recursion error for {identifier}: {rec_err}")
+
         except Exception as e:
+            if "429" in str(e) or "limit" in str(e).lower():
+                raise
             logger.error(f"Manager failed for {identifier}: {e}")
-            data.local_path = None
+            msg = f"Manager Error: {str(e)} | Type: {type(e).__name__}"
+            new_st = StageInfo(status=RecordStatus.ERROR, message=msg, timestamp=str(datetime.datetime.now()))
+            data.stages['book_download'] = new_st
 
         return data
 
@@ -121,42 +146,50 @@ class IADownloadManager(BaseAction):
         # Only post-process if files were actually downloaded
         if found_files:
             IADownloadManager._post_process_files(item_dir, files)
-            data.local_path = str(item_dir)
-        else:
-            data.local_path = None
+            data.file_uri.extend(found_files)
+            msg = f"Downloaded {len(found_files)} files."
+            st = StageInfo(status=RecordStatus.COMPLETED, message=msg)
+            data.stages['book_download'] = st
         return data
 
     def _handle_callback_stream(self, item: Item, files: List[str], data: EditionRecord):
         """Streams data directly from IA to the provided callback."""
         for file_name in files:
-            success = False
-            attempts = 0
-            max_tries = 3
-
-            while not success and attempts < max_tries:
-                response = item.download(files=file_name, return_responses=True, timeout=30) # type: ignore
+            st = data.stages.get('book_download', None)
+            try:
+                response = item.download(
+                    files=file_name, # type: ignore
+                    return_responses=True,
+                    timeout=30,
+                    retries=3,
+                    verbose=True if self.verbose else False,
+                )
                 resp = response[0] if response else None # Should only be one response
 
                 if not resp or resp.status_code != 200:
-                    attempts += 1
+                    logger.warning(f"Failed to download {file_name} for {item.identifier}.")
+                    msg = f" [{file_name} : {resp.status_code if resp else 'No Response'}]"
+                    if st:
+                        new_st = st.with_status(RecordStatus.ERROR).with_message(st.message + msg)
+                    else:
+                        new_st = StageInfo(status=RecordStatus.ERROR, message=msg, timestamp=str(datetime.datetime.now()))
+                    data.stages['book_download'] = new_st
                     continue
 
-                try:
-                    logger.debug(f"Attempt {attempts+1}: Piping {file_name}")
-                    self.callback(file_name, resp, data)
-                    success = True
-                except Exception as callback_err:
-                    logger.warning(f"Callback failed for {file_name} on attempt {attempts+1}: {callback_err}")
-                    attempts += 1
-                    if attempts < max_tries:
-                        sleep(2 ** attempts) # Exponential backoff
-                finally:
-                    resp.close() # Ensure the response is closed to free resources
+                self.callback(file_name, resp, data)
 
-            if not success:
-                logger.warning(f"Failed to pipe {file_name} after {max_tries} attempts.")
-                data.status = RecordStatus.ERROR
-                data.error = f"Failed to download {file_name}."
+            except Exception as callback_err:
+                logger.error(f"Stream error: {callback_err}")
+                msg = f"Callback Error: {str(callback_err)} | Type: {type(callback_err).__name__}"
+                if st:
+                    new_st = st.with_status(RecordStatus.ERROR).with_message(st.message + f" [{file_name}: {msg}]")
+                else:
+                    new_st = StageInfo(status=RecordStatus.ERROR, message=msg, timestamp=str(datetime.datetime.now()))
+                data.stages['book_download'] = new_st
+
+            finally:
+                if 'resp' in locals() and resp:
+                    resp.close() # Ensure the response is closed to free resources
 
     def _get_target_files(self, item: Item) -> List[str]:
         """Filter files based on specified formats or extensions."""
@@ -187,74 +220,3 @@ class IADownloadManager(BaseAction):
                         logger.debug(f"Unpacked {file_path}")
                     except Exception as e:
                         logger.warning(f"Post-processing failed for {name}: {e}")
-
-    @staticmethod
-    @DeprecationWarning
-    def download(
-            identifier: str,
-            formats: List[str] = None,
-            extensions: List[str] = None,
-            directory: str | Path = None,
-            unpack: bool = True,
-            retries: int = 3,
-            verbose: bool = False,
-            delay: float = 2.0
-    ) -> Optional[Path]:
-        """
-        Download files from an Internet Archive item based on specified formats or extensions for a given identifier.
-
-        Args:
-            identifier (str): The Internet Archive item identifier.
-            formats (list): List of IA formats to filter files (e.g., ['Text', 'Metadata']).
-            extensions (list): List of file extensions to filter files (e.g., ['.txt', '.xml']).
-            unpack (bool): Whether to unpack .gz files after download. Defaults to True.
-            retries (int): Number of retries for downloading files in case of failure.
-            verbose (bool): Whether to log detailed information during the download process.
-
-        Returns:
-            The path to the downloaded item directory, or None if no files were downloaded.
-        """
-        if not formats and not extensions:
-            raise ValueError("At least one of 'formats' or 'extensions' must be specified.")
-
-        if not identifier:
-            raise ValueError("An 'identifier' must be specified.")
-
-        item = get_item(identifier)
-
-        files_to_download = []
-        for f in item.files:
-            # Skip private files, they can be borrowed via IA but not downloaded directly
-            private = f.get('private', 'false').lower() == 'true'
-            if private:
-                continue
-            name = f.get('name', '')
-            if extensions and any(name.endswith(ext) for ext in extensions):
-                files_to_download.append(name)
-            elif formats and f.get('format', '') in formats:
-                files_to_download.append(name)
-
-        if not files_to_download:
-            if verbose:
-                logging.info(f"No files found for {identifier}")
-            return None
-
-        # IA subfolder setup
-        item_dir = Path(directory) / (identifier)
-
-        # Download files and use checksum to test integrity
-        item.download(
-            files=files_to_download,
-            destdir=directory,
-            verbose=True if verbose else False,
-            retries=retries,
-            checksum=True
-        )
-
-        if unpack:
-            for filename in files_to_download:
-                if filename.endswith(".gz"):
-                    full_path = item_dir / filename
-                    unpack_gzip(full_path)
-        sleep(delay)
-        return item_dir
