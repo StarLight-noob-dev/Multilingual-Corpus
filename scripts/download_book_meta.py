@@ -6,12 +6,14 @@ from threading import Event, BoundedSemaphore, Thread, Condition
 from typing import List
 
 from requests import Response
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select, cast
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from src.database.config import DATABASE_URL
 from src.database.minio import get_minio_client
 from src.logger import setup_logging
+from src.models.orm import EditionORM
 from src.models.record import IRecord, RecordStatus, StageInfo, EditionRecord
 from src.pipeline.runner import SequentialOrchestrator
 from src.pipeline.steps import PipelineStep
@@ -25,12 +27,14 @@ TIME_TO_REFILL_SECONDS = 60
 MAX_PER_REFILL = 10  # Number of permits to add back to the limiter every refill interval
 COOLDOWN_SECONDS = 1800  # 30 minutes
 MAX_WORKERS = 2
+MAX_IN_FLIGHT = 1000  # Maximum number of outstanding submitted tasks (backpressure)
 
 # --- Global State ---
 CV = Condition()
 IS_PAUSED = False
 STOP_PIPELINE = Event()
 LIMITER = BoundedSemaphore(MAX_PER_REFILL)
+IN_FLIGHT = BoundedSemaphore(MAX_IN_FLIGHT)
 
 
 def refill_limiter():
@@ -236,12 +240,30 @@ class RecoverableRunner:
         Thread(target=recovery_manager, daemon=True).start()
 
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+
+            # Task wrapper adds backpressure: we acquire IN_FLIGHT before submitting and release when finished.
+            def _task_wrapper(rec: IRecord):
+                try:
+                    self.process_record(rec)
+                finally:
+                    try:
+                        IN_FLIGHT.release()
+                    except Exception:
+                        # If release fails for any reason, log and continue
+                        log.debug("IN_FLIGHT.release() failed or semaphore already full")
+
             for record in data:
                 if STOP_PIPELINE.is_set():
                     log.info("Stop signal received. Halting new task submissions.")
                     break
-                executor.submit(self.process_record, record)
-            executor.shutdown(wait=False, cancel_futures=True)
+
+                # Backpressure: block if too many outstanding tasks are pending
+                IN_FLIGHT.acquire()
+                executor.submit(_task_wrapper, record)
+
+            # Wait for all submitted tasks to finish before exiting.
+            # This prevents the producer (DB stream) from outrunning the executor and building an unbounded queue.
+            executor.shutdown(wait=True)
 
 
 # --- Execution ---
@@ -258,8 +280,18 @@ if __name__ == "__main__":
         callback=store_book_to_bucket
     )
 
+    stmt = (
+        select(EditionORM)
+        .where(
+            EditionORM.ocaid.is_not(None),
+            EditionORM.ocaid != "",
+            EditionORM.stages == cast('{}', JSONB) #type: ignore
+        )
+    )
+
+    data = repo.stream_statement(stmt=stmt, batch_size=10)
+
     runner = RecoverableRunner(downloader, repo)
-    data = repo.stream_all(batch_size=100)
 
     try:
         runner.run(data)
