@@ -84,7 +84,10 @@ class IADownloadManager(BaseAction):
     @override
     def perform(self, data: EditionRecord) -> EditionRecord:
         identifier = data.ocaid
-        if not identifier:  # Should not happen, but just in case
+        if not identifier:
+            msg = "No identifier"
+            st = StageInfo(status=RecordStatus.OMIT, message=msg)
+            data.stages['book_download'] = st
             return data
 
         try:
@@ -121,7 +124,7 @@ class IADownloadManager(BaseAction):
             raise RecursionError(f"Recursion error for {identifier}: {rec_err}")
 
         except Exception as e:
-            if "429" in str(e) or "limit" in str(e).lower():
+            if "429" in str(e) or "limit" in str(e).lower() or "throttle" in str(e).lower():
                 raise
             logger.error(f"Manager failed for {identifier}: {e}")
             msg = f"Manager Error: {str(e)} | Type: {type(e).__name__}"
@@ -174,6 +177,9 @@ class IADownloadManager(BaseAction):
                     else:
                         new_st = StageInfo(status=RecordStatus.ERROR, message=msg, timestamp=str(datetime.datetime.now()))
                     data.stages['book_download'] = new_st
+
+                    if resp.status_code == 429 or (resp.status_code == 503 and "limit" in (resp.text or "").lower()):
+                        raise Exception(f"Throttled by IA with status {resp.status_code}.")
                     continue
 
                 self.callback(file_name, resp, data)
