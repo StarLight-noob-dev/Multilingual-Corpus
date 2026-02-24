@@ -1,6 +1,6 @@
-from typing import Optional, List, Type, Iterable, Any, overload, override
+from typing import Optional, List, Type, Iterable, Any
 
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, Select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import scoped_session
 
@@ -139,12 +139,57 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         """
         Self-sufficient streaming.
         Note: The session stays open until the generator is finished.
+
+        Args:
+            batch_size (int): Number of records to fetch per batch from the database. Default is 100.
+
+        Returns:
+            Iterable[T_DOMAIN]: An iterable of domain model instances for all records in the database.
         """
         session = self.session_factory()
         try:
-            stmt = select(self.model).execution_options(yield_per=batch_size)
+            stmt = select(self.model).execution_options(yield_per=batch_size, stream_results=True)
             for orm_entity in session.scalars(stmt):
-                yield self.mapper.to_domain(orm_entity)
+                domain_obj = self.mapper.to_domain(orm_entity)
+                try:
+                    session.expunge(orm_entity)
+                except Exception:
+                    # If expunge fails for any reason, continue.
+                    pass
+                yield domain_obj
+        finally:
+            self.session_factory.remove()
+
+    def stream_statement(self, stmt: Select, batch_size: int = 100) -> Iterable[T_DOMAIN]:
+        """
+        Streams results for a given SQLAlchemy Select statement.
+
+        Note: The session stays open until the generator is finished.
+
+        It applies stream_results + yield_per for server-side batching. Then expunges ORM instances to prevent
+        memory growth.
+
+        Args:
+            stmt (Select): A SQLAlchemy Select statement to execute and stream results from.
+            batch_size (int): Number of records to fetch per batch from the database. Default is
+
+        Returns:
+            Iterable[T_DOMAIN]: An iterable of domain model instances resulting from the executed statement.
+        """
+        session = self.session_factory()
+        try:
+            streaming_stmt = stmt.execution_options(
+                yield_per=batch_size,
+                stream_results=True,
+            )
+            for orm_entity in session.scalars(streaming_stmt):
+                domain_obj = self.mapper.to_domain(orm_entity)
+                try:
+                    session.expunge(orm_entity)
+                except Exception:
+                    # If expunge fails for any reason, continue.
+                    pass
+                yield domain_obj
         finally:
             self.session_factory.remove()
 
