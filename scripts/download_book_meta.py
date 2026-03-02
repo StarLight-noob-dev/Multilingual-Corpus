@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 
 from src.database.config import DATABASE_URL
 from src.database.minio import get_minio_client
-from src.logger import setup_logging
+from src.logger import setup_logging, clear_logs
 from src.models.orm import EditionORM
 from src.models.record import IRecord, RecordStatus, StageInfo, EditionRecord
 from src.pipeline.runner import SequentialOrchestrator
@@ -35,6 +35,8 @@ IS_PAUSED = False
 STOP_PIPELINE = Event()
 LIMITER = BoundedSemaphore(MAX_PER_REFILL)
 IN_FLIGHT = BoundedSemaphore(MAX_IN_FLIGHT)
+
+mc_client = get_minio_client()
 
 
 def refill_limiter():
@@ -92,10 +94,6 @@ def trigger_stop():
                 LIMITER.release()
             except ValueError:
                 break  # Semaphore is full, which is fine
-
-
-mc_client = get_minio_client()
-
 
 def store_book_to_bucket(file_name: str, response: Response, record: EditionRecord) -> EditionRecord:
     """
