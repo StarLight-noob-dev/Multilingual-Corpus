@@ -22,10 +22,10 @@ from src.repositories import EditionRepository
 log = logging.getLogger("BookMetaDownload")
 
 # --- Configuration ---
-MAX_WORKERS = 70
+MAX_WORKERS = 8
 IN_FLIGHT_MULTIPLIER = 10 # Submitted task per active thread
 MAX_IN_FLIGHT = MAX_WORKERS * IN_FLIGHT_MULTIPLIER # Maximum number of outstanding submitted tasks (backpressure)
-TIME_TO_REFILL_SECONDS = 1
+TIME_TO_REFILL_SECONDS = 60
 MAX_PER_REFILL = 100
 COOLDOWN_SECONDS = 1800  # 30 minutes
 
@@ -143,7 +143,7 @@ def store_book_to_bucket(file_name: str, response: Response, record: EditionReco
             new_st = st.with_message(st.message + msg)
             record.stages['book_download'] = new_st
 
-        log.debug(f"Successfully uploaded {file_name}. Etag: {result.etag}")
+        log.info(f"Successfully uploaded {file_name}. Etag: {result.etag}")
         return record
 
     except Exception as e:
@@ -183,7 +183,7 @@ class RecoverableRunner:
         if STOP_PIPELINE.is_set():
             return
 
-        log.info("Processing record: %s", getattr(record, 'ol_id', str(record)))
+        log.debug("Processing record: %s", getattr(record, 'ol_id', str(record)))
 
         try:
             if isinstance(self.orchestrator, SequentialOrchestrator):
@@ -244,6 +244,7 @@ class RecoverableRunner:
                 total += 1
                 if total % 10000 == 0:
                     log.info(f"Submitted {total} records for processing. Current in-flight tasks: {MAX_IN_FLIGHT - IN_FLIGHT._value}")
+                total += 1
                 executor.submit(self._task_wrapper, record)
 
             # Wait for all submitted tasks to finish before exiting.
