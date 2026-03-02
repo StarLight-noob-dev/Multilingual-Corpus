@@ -74,8 +74,8 @@ class IADownloadManager(BaseAction):
         self.callback = callback
         self.ia_session = get_session(config={
             'retries': 3,
-            'pool_connections': 16,
-            'pool_maxsize': 16,
+            'pool_connections': 80,
+            'pool_maxsize': 80,
             'timeout': 30
         })
         if not self.callback:

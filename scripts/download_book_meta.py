@@ -6,8 +6,7 @@ from threading import Event, BoundedSemaphore, Thread, Condition
 from typing import List
 
 from requests import Response
-from sqlalchemy import create_engine, select, cast
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from src.database.config import DATABASE_URL
@@ -23,11 +22,12 @@ from src.repositories import EditionRepository
 log = logging.getLogger("BookMetaDownload")
 
 # --- Configuration ---
-TIME_TO_REFILL_SECONDS = 60
-MAX_PER_REFILL = 10  # Number of permits to add back to the limiter every refill interval
+MAX_WORKERS = 70
+IN_FLIGHT_MULTIPLIER = 10 # Submitted task per active thread
+MAX_IN_FLIGHT = MAX_WORKERS * IN_FLIGHT_MULTIPLIER # Maximum number of outstanding submitted tasks (backpressure)
+TIME_TO_REFILL_SECONDS = 1
+MAX_PER_REFILL = 100
 COOLDOWN_SECONDS = 1800  # 30 minutes
-MAX_WORKERS = 2
-MAX_IN_FLIGHT = 1000  # Maximum number of outstanding submitted tasks (backpressure)
 
 # --- Global State ---
 CV = Condition()
@@ -45,8 +45,6 @@ def refill_limiter():
             # If we are paused due to API limits, don't refill
             while IS_PAUSED:
                 CV.wait()
-
-            # Refill the semaphore
             log.info("Refilling rate limiter permits...")
             for _ in range(MAX_PER_REFILL):
                 try:
@@ -63,10 +61,8 @@ def recovery_manager():
             while not IS_PAUSED:
                 CV.wait(timeout=1)
                 if STOP_PIPELINE.is_set(): return
-
             log.warning(f"System Paused. Cooling down for {COOLDOWN_SECONDS}s...")
             time.sleep(COOLDOWN_SECONDS)
-
             log.debug("Recovery complete. Resuming pipeline...")
             IS_PAUSED = False
             CV.notify_all()
@@ -277,15 +273,16 @@ if __name__ == "__main__":
     repo = EditionRepository(session_factory=s)
     downloader = IADownloadManager(
         formats=['DjVuTXT'],
-        callback=store_book_to_bucket
+        callback=store_book_to_bucket,
+        delay=0
     )
 
     stmt = (
         select(EditionORM)
         .where(
             EditionORM.ocaid.is_not(None),
-            EditionORM.ocaid != "",
-            EditionORM.stages == cast('{}', JSONB) #type: ignore
+            EditionORM.ocaid == "",
+            EditionORM.stages == '{}' #type: ignore
         )
     )
 
@@ -295,6 +292,11 @@ if __name__ == "__main__":
 
     try:
         runner.run(data)
+
     except KeyboardInterrupt:
+        print("Shutting down for KeyboardInterrupt...")
+        STOP_PIPELINE.set()
         trigger_stop()
-        print("Shutting down...")
+
+    except Exception as e:
+        trigger_stop()
