@@ -263,6 +263,7 @@ class RecoverableRunner:
 
 
 if __name__ == "__main__":
+    clear_logs()
     setup_logging("book_download.log")
     engine = create_engine(DATABASE_URL, pool_size=MAX_WORKERS + 5)
 
