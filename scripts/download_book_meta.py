@@ -45,7 +45,6 @@ def refill_limiter():
             # If we are paused due to API limits, don't refill
             while IS_PAUSED:
                 CV.wait()
-            log.info("Refilling rate limiter permits...")
             for _ in range(MAX_PER_REFILL):
                 try:
                     LIMITER.release()
@@ -95,6 +94,9 @@ def trigger_stop():
                 break  # Semaphore is full, which is fine
 
 
+mc_client = get_minio_client()
+
+
 def store_book_to_bucket(file_name: str, response: Response, record: EditionRecord) -> EditionRecord:
     """
     Store streamed download (response) into MinIO 'books' bucket and set record.local_path.
@@ -121,18 +123,13 @@ def store_book_to_bucket(file_name: str, response: Response, record: EditionReco
     st = record.stages.get('book_download', None)
 
     try:
-        client = get_minio_client()
 
-        try:
-            # Ensure bucket exist if init_db was not run or bucket was deleted.
-            if not client.bucket_exists(bucket_name):
-                client.make_bucket(bucket_name)
-        except Exception:
-            pass
+        if not mc_client.bucket_exists(bucket_name):
+            mc_client.make_bucket(bucket_name)
 
         response.raw.decode_content = True
 
-        result = client.put_object(
+        result = mc_client.put_object(
             bucket_name=bucket_name,
             object_name=object_key,
             data=response.raw,
@@ -237,17 +234,6 @@ class RecoverableRunner:
 
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
 
-            # Task wrapper adds backpressure: we acquire IN_FLIGHT before submitting and release when finished.
-            def _task_wrapper(rec: IRecord):
-                try:
-                    self.process_record(rec)
-                finally:
-                    try:
-                        IN_FLIGHT.release()
-                    except Exception:
-                        # If release fails for any reason, log and continue
-                        log.debug("IN_FLIGHT.release() failed or semaphore already full")
-
             for record in data:
                 if STOP_PIPELINE.is_set():
                     log.info("Stop signal received. Halting new task submissions.")
@@ -255,12 +241,20 @@ class RecoverableRunner:
 
                 # Backpressure: block if too many outstanding tasks are pending
                 IN_FLIGHT.acquire()
-                executor.submit(_task_wrapper, record)
+                executor.submit(self._task_wrapper, record)
 
             # Wait for all submitted tasks to finish before exiting.
             # This prevents the producer (DB stream) from outrunning the executor and building an unbounded queue.
             executor.shutdown(wait=True)
 
+    def _task_wrapper(self, rec: IRecord):
+        try:
+            self.process_record(rec)
+        finally:
+            try:
+                IN_FLIGHT.release()
+            except Exception:
+                log.debug("IN_FLIGHT.release() failed or semaphore already full")
 
 # --- Execution ---
 
@@ -274,7 +268,7 @@ if __name__ == "__main__":
     downloader = IADownloadManager(
         formats=['DjVuTXT'],
         callback=store_book_to_bucket,
-        delay=0
+        delay=1.0
     )
 
     stmt = (
@@ -286,7 +280,7 @@ if __name__ == "__main__":
         )
     )
 
-    data = repo.stream_statement(stmt=stmt, batch_size=10)
+    data = repo.stream_statement(stmt=stmt, batch_size=500)
 
     runner = RecoverableRunner(downloader, repo)
 
