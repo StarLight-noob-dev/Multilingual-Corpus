@@ -278,7 +278,7 @@ if __name__ == "__main__":
         select(EditionORM)
         .where(
             EditionORM.ocaid.is_not(None),
-            EditionORM.ocaid == "",
+            EditionORM.ocaid != "",
             EditionORM.stages == '{}' #type: ignore
         )
     )
