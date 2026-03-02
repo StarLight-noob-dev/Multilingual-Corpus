@@ -226,3 +226,14 @@ class IADownloadManager(BaseAction):
                         logger.debug(f"Unpacked {file_path}")
                     except Exception as e:
                         logger.warning(f"Post-processing failed for {name}: {e}")
+
+    @override
+    def execute(self, data: Any) -> Optional[Any]:
+        try:
+            self.perform(data)
+            return data
+        except Exception as e:
+            if "429" in str(e) or "limit" in str(e).lower() or "throttle" in str(e).lower():
+                raise
+            logger.error(f"Action {self.__class__.__name__} failed: \n\t[*] Data: {data} \n\t[*] Error: {e}")
+            return None
