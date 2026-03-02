@@ -295,5 +295,6 @@ if __name__ == "__main__":
         STOP_PIPELINE.set()
         trigger_stop()
 
-    except Exception:
+    except Exception as e:
+        log.exception(f"Unhandled exception: {e}")
         trigger_stop()
