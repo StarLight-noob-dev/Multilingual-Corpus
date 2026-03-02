@@ -145,7 +145,7 @@ def store_book_to_bucket(file_name: str, response: Response, record: EditionReco
             new_st = st.with_message(st.message + msg)
             record.stages['book_download'] = new_st
 
-        log.info(f"Successfully uploaded {file_name}. Etag: {result.etag}")
+        log.debug(f"Successfully uploaded {file_name}. Etag: {result.etag}")
         return record
 
     except Exception as e:
@@ -229,6 +229,8 @@ class RecoverableRunner:
     def run(self, data):
         """Streams IDs from the database to keep memory usage low."""
         # Start helper threads
+        total = 0
+
         Thread(target=refill_limiter, daemon=True).start()
         Thread(target=recovery_manager, daemon=True).start()
 
@@ -241,6 +243,9 @@ class RecoverableRunner:
 
                 # Backpressure: block if too many outstanding tasks are pending
                 IN_FLIGHT.acquire()
+                total += 1
+                if total % 10000 == 0:
+                    log.info(f"Submitted {total} records for processing. Current in-flight tasks: {MAX_IN_FLIGHT - IN_FLIGHT._value}")
                 executor.submit(self._task_wrapper, record)
 
             # Wait for all submitted tasks to finish before exiting.
@@ -256,12 +261,10 @@ class RecoverableRunner:
             except Exception:
                 log.debug("IN_FLIGHT.release() failed or semaphore already full")
 
-# --- Execution ---
 
 if __name__ == "__main__":
     setup_logging("book_download.log")
     engine = create_engine(DATABASE_URL, pool_size=MAX_WORKERS + 5)
-
 
     s = scoped_session(sessionmaker(bind=engine))
     repo = EditionRepository(session_factory=s)
@@ -292,5 +295,5 @@ if __name__ == "__main__":
         STOP_PIPELINE.set()
         trigger_stop()
 
-    except Exception as e:
+    except Exception:
         trigger_stop()
