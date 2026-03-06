@@ -4,6 +4,8 @@ import time
 from concurrent.futures.thread import ThreadPoolExecutor
 from typing import List, Any, override
 
+from tqdm import tqdm
+
 from src.exceptions import EmptyPipelineError, InvalidStepError
 from src.pipeline.error import ErrorPolicy, Action
 from src.pipeline.steps import PipelineStep
@@ -119,6 +121,7 @@ class BoundedScheduler:
         self.max_per_refill = max_per_refill
         self.refill_seconds = refill_seconds
         self.cooldown_seconds = cooldown_seconds
+        self.pbar = None
 
     # --- Internal Management Logic ---
 
@@ -146,12 +149,16 @@ class BoundedScheduler:
                 if self.stop_event.is_set(): break
 
                 self.log.warning(f"Cooldown active: {self.cooldown_seconds}s...")
+                if self.pbar:
+                    self.pbar.set_description("PAUSED - Cooldown active")
 
             time.sleep(self.cooldown_seconds)
 
             with self.cv:
                 self.is_paused = False
                 self.log.info("Cooldown finished. Resuming...")
+                if self.pbar:
+                    self.pbar.set_description("Processing")
                 self.cv.notify_all()
 
     def trigger_pause(self, e=None, record=None):
@@ -182,11 +189,9 @@ class BoundedScheduler:
             self.limiter.acquire()
 
             if self.stop_event.is_set(): return
-
-            result = self.orchestrator.run(record)
-            if result:
-                self.repo.update_entity(result)
+            self.orchestrator.run(record)
         finally:
+            self.pbar.update(1)
             try:
                 self.in_flight.release()
             except ValueError:
@@ -197,13 +202,16 @@ class BoundedScheduler:
         threading.Thread(target=self._refill_limiter_loop, daemon=True).start()
         threading.Thread(target=self._recovery_manager_loop, daemon=True).start()
 
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            for record in data_stream:
-                if self.stop_event.is_set():
-                    break
+        with tqdm(desc="Processing", unit=" rec", dynamic_ncols=True) as pbar:
+            self.pbar = pbar
 
-                self.log.debug("Processing record: %s", getattr(record, 'ol_id', str(record)))
-                self.in_flight.acquire()
-                executor.submit(self._task_wrapper, record)
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                for record in data_stream:
+                    if self.stop_event.is_set():
+                        break
+                    self.log.debug("Processing record: %s", getattr(record, 'ol_id', str(record)))
+                    self.in_flight.acquire()
+                    executor.submit(self._task_wrapper, record)
 
-            executor.shutdown(wait=True)
+                self.log.info("Data stream exhausted. Finishing in-flight tasks...")
+                executor.shutdown(wait=True)
