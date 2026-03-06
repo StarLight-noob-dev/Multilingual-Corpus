@@ -205,6 +205,5 @@ class BoundedScheduler:
                 self.log.debug("Processing record: %s", getattr(record, 'ol_id', str(record)))
                 self.in_flight.acquire()
                 executor.submit(self._task_wrapper, record)
-                time.sleep(2)
 
             executor.shutdown(wait=True)
