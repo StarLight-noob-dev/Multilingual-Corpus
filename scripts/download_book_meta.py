@@ -6,7 +6,7 @@ from threading import Event, BoundedSemaphore, Thread, Condition
 from typing import List
 
 from requests import Response
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, or_
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from src.database.config import DATABASE_URL
@@ -297,7 +297,11 @@ if __name__ == "__main__":
             EditionORM.ocaid.is_not(None),
             EditionORM.ocaid != "",
             EditionORM.stages == '{}', #type: ignore
-            EditionORM.languages.contains(lang_to_download)
+            EditionORM.languages.contains(lang_to_download),
+            or_(
+                EditionORM.copyright_info["status"].astext == "PUBLIC_DOMAIN",
+                EditionORM.copyright_info["status"].astext == "UNKNOWN"
+            )
         )
         .order_by(EditionORM.ol_id.asc())
     )
