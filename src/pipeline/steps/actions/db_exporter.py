@@ -68,3 +68,29 @@ class BufferedPostgresExporter(BaseAction):
                     self.repo.create(record)
         except Exception as e:
             logger.exception(f"Failed to flush buffer to database: {e}")
+
+
+class BufferedPostgresUpdater(BufferedPostgresExporter):
+    """
+    Export data to a PostgreSQL database using buffered updates for efficiency.
+
+    Note: self.flush() should be called to ensure all buffered data is written to the database before
+    the program exits or when you want to ensure all data is saved.
+    """
+    @override
+    def _flush_buffer(self, records: List[T_DOMAIN]) -> None:
+        """Helper method to flush a given list of records to the database."""
+        if not records:
+            return
+
+        try:
+            if hasattr(self.repo, 'create_or_update_many'):
+                key = self.repo.mapper.ORM_CLASS.__table__.primary_key.columns.keys()
+                self.repo.create_or_update_many(records, conflict_index=key)
+            elif hasattr(self.repo, 'bulk_update'):
+                self.repo.bulk_update(records)
+            else:
+                for record in records:
+                    self.repo.update(record)
+        except Exception as e:
+            logger.exception(f"Failed to flush buffer to database: {e}")

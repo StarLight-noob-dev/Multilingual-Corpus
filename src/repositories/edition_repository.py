@@ -20,3 +20,9 @@ class EditionRepository(BaseSqlRepository[EditionRecord, EditionORM, str]):
             records,
             conflict_index=['ol_id']
         )
+
+    def bulk_update(self, records: List[EditionRecord]) -> None:
+        self.update_many(
+            records,
+            conflict_index=['ol_id']
+        )

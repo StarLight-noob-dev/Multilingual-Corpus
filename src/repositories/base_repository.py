@@ -245,6 +245,41 @@ class BaseSqlRepository(IRepository[T_DOMAIN, T_ORM, T_ID]):
         finally:
             self.session_factory.remove()
 
+    def create_or_update_many(
+            self,
+            entities: Iterable[T_DOMAIN],
+            conflict_index: List[str],
+            update_columns: Optional[List[str]] = None
+    ) -> None:
+        """
+        Perform a high-performance UPSERT for a batch of entities.
+        """
+        session = self.session_factory()
+        try:
+            orm_dicts = [self.mapper.to_orm(e).to_dict() for e in entities]
+            if not orm_dicts:
+                return
+            stmt = insert(self.model).values(orm_dicts)
+            if update_columns is None:
+                # Automatic: Update everything that isn't part of the conflict index or PK
+                pk_keys = self.model.__table__.primary_key.columns.keys()
+                update_columns = [
+                    c.name for c in self.model.__table__.columns
+                    if c.name not in conflict_index and c.name not in pk_keys
+                ]
+            set_dict = {col: stmt.excluded[col] for col in update_columns}
+            upsert_stmt = stmt.on_conflict_do_update(
+                index_elements=conflict_index,
+                set_=set_dict
+            )
+            session.execute(upsert_stmt)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            self.session_factory.remove()
+
     def delete(self, entity_id: T_ID) -> bool:
         """
         Delete an entity by its ID.
