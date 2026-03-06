@@ -17,6 +17,8 @@ from src.models.record import IRecord, RecordStatus, StageInfo, EditionRecord
 from src.pipeline.runner import SequentialOrchestrator
 from src.pipeline.steps import PipelineStep
 from src.pipeline.steps.actions import IADownloadManager
+from src.pipeline.steps.filters.validation import FieldValidationFilter
+from src.pipeline.steps.utility.utility import EarlyPipelineStop
 from src.repositories import EditionRepository
 
 log = logging.getLogger("BookMetaDownload")
@@ -217,6 +219,10 @@ class RecoverableRunner:
             log.error(f"RecursionError on {record}. Skipping record. {re.__traceback__}")
             trigger_stop()
 
+        except EarlyPipelineStop:
+            log.info(f"EarlyPipelineStop triggered at {record}. Halting new task submissions.")
+            trigger_stop()
+
         except Exception as e:
             if "429" in str(e) or "limit" in str(e).lower() or "throttle" in str(e).lower():
                 log.warning(f"API limit hit for {record}. Triggering pause. Error: {e}")
@@ -268,19 +274,32 @@ if __name__ == "__main__":
 
     s = scoped_session(sessionmaker(bind=engine))
     repo = EditionRepository(session_factory=s)
+    lang_to_download = []
+
     downloader = IADownloadManager(
         formats=['DjVuTXT'],
         callback=store_book_to_bucket,
         delay=1.0
     )
 
+    orchestrator = [
+        downloader,
+        FieldValidationFilter(validation_map={
+            "file_uri": lambda x: isinstance(x, list) and len(x) > 0 and (len(uri.strip()) > 0 for uri in x),
+        }),
+        EarlyPipelineStop(5000)
+    ]
+
+
     stmt = (
         select(EditionORM)
         .where(
             EditionORM.ocaid.is_not(None),
             EditionORM.ocaid != "",
-            EditionORM.stages == '{}' #type: ignore
+            EditionORM.stages == '{}', #type: ignore
+            EditionORM.languages.contains(lang_to_download)
         )
+        .order_by(EditionORM.ol_id.asc())
     )
 
     data = repo.stream_statement(stmt=stmt, batch_size=500)
