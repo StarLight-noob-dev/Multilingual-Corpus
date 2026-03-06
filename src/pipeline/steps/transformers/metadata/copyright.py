@@ -67,7 +67,7 @@ class EditionCopyrightCalculation(BaseTransformer):
                     status=CopyrightStatus.PUBLIC_DOMAIN if enough_time_passed else CopyrightStatus.IN_COPYRIGHT,
                     reason=f"Author died in {last_author_dead_year}, copyright expires in {expiry_year}." if not enough_time_passed else None
                 )
-                data.copyright = info
+                data.copyright_info = info
                 return data
 
         '''
@@ -87,13 +87,13 @@ class EditionCopyrightCalculation(BaseTransformer):
                 status=CopyrightStatus.PUBLIC_DOMAIN if enough_time_passed else CopyrightStatus.IN_COPYRIGHT,
                 reason=f"Published in {publication_year}, copyright expires in {expiry_year}." if not enough_time_passed else None
             )
-            data.copyright = info
+            data.copyright_info = info
             return data
 
         # Default to copyrighted if no conditions met
         default = CopyrightInfo(
-            status=CopyrightStatus.IN_COPYRIGHT,
-            reason="No sufficient information to determine copyright status. Defaulting to copyrighted."
+            status=CopyrightStatus.UNKNOWN,
+            reason="No sufficient information to determine copyright status."
         )
-        data.copyright = default
+        data.copyright_info = default
         return data
