@@ -202,7 +202,7 @@ class BoundedScheduler:
                 if self.stop_event.is_set():
                     break
 
-                self.log.info("Processing record: %s", getattr(record, 'ol_id', str(record)))
+                self.log.debug("Processing record: %s", getattr(record, 'ol_id', str(record)))
                 self.in_flight.acquire()
                 executor.submit(self._task_wrapper, record)
                 time.sleep(2)
