@@ -18,8 +18,8 @@ log = logging.getLogger("calculate_copyright_status")
 def main():
     setup_logging("calculate_copyright_status.log")
 
-    max_workers = 1
-    max_in_flight = max_workers * 1
+    max_workers = 70
+    max_in_flight = max_workers * 10
 
     log.info("Starting calculate_copyright_status with %d workers (max in-flight=%d)", max_workers, max_in_flight)
 
@@ -41,16 +41,20 @@ def main():
 
     stmt = (
         select(EditionORM)
+        .where(
+            EditionORM.ocaid.is_not(None),
+            EditionORM.ocaid != ''
+        )
         .order_by(EditionORM.ol_id.asc())
     )
 
-    data = edition_repo.stream_statement(stmt=stmt, batch_size=1)
+    data = edition_repo.stream_statement(stmt=stmt, batch_size=1000)
 
     runner = BoundedScheduler(
         orchestrator=pipeline,
         repo=edition_repo,
-        max_workers=70,
-        max_per_refill=300,
+        max_workers=max_workers,
+        max_per_refill=max_in_flight,
         refill_seconds=1,
         cooldown_seconds=1
     )
