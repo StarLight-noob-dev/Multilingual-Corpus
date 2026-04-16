@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import List
 
 from sqlalchemy.orm import scoped_session
@@ -20,3 +21,8 @@ class AuthorRepository(BaseSqlRepository[AuthorRecord, AuthorORM, str]):
             records,
             conflict_index=['ol_id']
         )
+
+    @lru_cache(maxsize=1000)
+    def get_author_name_by_id(self, ol_id: str) -> str:
+        author = self.get_by_id(ol_id)
+        return author.name if author else None
