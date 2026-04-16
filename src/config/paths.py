@@ -12,6 +12,7 @@ class DataPaths:
     DATA_DIR = ROOT / "data"
     DATA_RAW_DIR = DATA_DIR / "raw"
     DATA_SAMPLES_DIR = DATA_DIR / "samples"
+    DATA_PROCESSED_DIR = DATA_DIR / "processed"
     DOWNLOAD_DIR = DATA_DIR / "downloads"
     LOGS_DIR = ROOT / "logs"
 
