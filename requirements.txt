@@ -7,3 +7,5 @@ minio
 python-dateutil
 internetarchive
 tqdm
+pandas
+datasets
