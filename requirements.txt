@@ -1,6 +1,6 @@
 pytest
 python-dotenv
-psycopg2
+psycopg2-binary
 sqlalchemy
 sqlalchemy-utils
 minio
